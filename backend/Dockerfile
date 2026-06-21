@@ -27,4 +27,4 @@ RUN npx prisma generate
 RUN node scripts/downloadModels.js
 
 EXPOSE 4000
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "npx prisma db push && node seed.js; node server.js"]
