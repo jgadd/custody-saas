@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: custody_saas
+      POSTGRES_USER: custody
+      POSTGRES_PASSWORD: CustodyDemo2024!
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U custody -d custody_saas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://custody:CustodyDemo2024!@postgres:5432/custody_saas
+      JWT_SECRET: rpngc-custody-demo-2024
+      PORT: 4000
+      NODE_ENV: production
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma db push &&
+             node seed.js &&
+             node server.js"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: eyJhIjoiNmE0YzNmZjM1OGQ3ZjI5NGMwN2YzZDMzMDM0Y2RiMzkiLCJ0IjoiZDg3ZTgzZGYtOTE4Ny00ZDQ5LWJjYjUtNmQwYjgzMGY2NzI3IiwicyI6Ill6azJNekpsWlRrdE1tVTFZaTAwTWprd0xUazVZakl0Tmpoa1lURXhOV1U1WVRObSJ9
+    depends_on:
+      - frontend
+
+volumes:
+  pgdata:
+  uploads:
