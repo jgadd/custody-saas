@@ -146,9 +146,16 @@ export default function BookingModal({ onClose, onBooked }) {
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
-        <div className="modal-header">
-          <h2>🔒 New Custody Booking</h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+        <div className="modal-header" style={{ gap: '1rem' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+            <i className="ti ti-lock" style={{ color: 'var(--gold)' }} /> New Custody Booking
+          </h2>
+          <div className="step-dots">
+            {[0, 1, 2, 3, 4].map(i => (
+              <span key={i} className={`step-dot ${step === i ? 'active' : step > i ? 'done' : ''}`} />
+            ))}
+          </div>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><i className="ti ti-x" /></button>
         </div>
 
         <div className="tabs" style={{ padding: '0 1.5rem', marginBottom: 0, borderBottom: '1px solid var(--border)' }}>
@@ -297,12 +304,12 @@ export default function BookingModal({ onClose, onBooked }) {
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          {step > 1 && <button className="btn btn-ghost" onClick={() => setStep(s => s-1)}>← Back</button>}
+          {step > 1 && <button className="btn btn-ghost" onClick={() => setStep(s => s-1)}><i className="ti ti-arrow-left" /> Back</button>}
           {step >= 1 && step < 4
-            ? <button className="btn btn-primary" onClick={() => setStep(s => s+1)}>Next →</button>
+            ? <button className="btn btn-primary" onClick={() => setStep(s => s+1)}>Next <i className="ti ti-arrow-right" /></button>
             : step === 4
             ? <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
-                {loading ? '⏳ Booking...' : '🔒 Confirm Booking'}
+                {loading ? <><i className="ti ti-loader-2" /> Booking…</> : <><i className="ti ti-lock" /> Confirm Booking</>}
               </button>
             : null
           }

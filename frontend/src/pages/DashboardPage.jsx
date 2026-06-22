@@ -47,7 +47,7 @@ export default function DashboardPage() {
           </Link>
           <Link to="/admin/stations" className="card" style={{ textDecoration: 'none', display: 'block', borderLeft: '4px solid var(--blue)' }}>
             <div className="stat-label">Police Stations</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '0.5rem' }}>🏢 Manage Stations</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '0.5rem' }}><i className="ti ti-building" /> Manage Stations</div>
           </Link>
         </div>
       </div>
@@ -67,30 +67,25 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString('en-PG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowBooking(true)}>+ New Booking</button>
+        <button className="btn btn-primary" onClick={() => setShowBooking(true)}>
+          <i className="ti ti-plus" /> New Booking
+        </button>
       </div>
 
-      <div
-        className="card"
-        style={{
-          marginBottom: '1.5rem',
-          borderLeft: '4px solid var(--gold, #d4af37)',
-          background: 'var(--bg-secondary, #faf8f2)',
-          cursor: 'pointer',
-        }}
-        onClick={() => setShowBooking(true)}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '0.5rem 0' }}>
-          <div style={{ fontSize: '2.5rem' }}>📷🖐️</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>Booking Tracker</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+      <div className="tracker-card" onClick={() => setShowBooking(true)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <div className="tracker-card-icon">
+            <i className="ti ti-scan" />
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div className="tracker-card-title">Booking Tracker</div>
+            <div className="tracker-card-sub">
               Scan the offender's face or fingerprint to check for an existing record across all stations,
               then add a new offense or start a fresh booking.
             </div>
           </div>
           <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); setShowBooking(true); }}>
-            Start Scan →
+            <i className="ti ti-arrow-right" /> Start Scan
           </button>
         </div>
       </div>
@@ -127,7 +122,7 @@ export default function DashboardPage() {
       {biometricStats && (
         <div className="card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid var(--purple, #7c3aed)' }}>
           <div className="card-header">
-            <h2>🔍 Biometric Identification</h2>
+            <h2><i className="ti ti-fingerprint-scan" /> Biometric Identification</h2>
           </div>
           <div style={{ display: 'flex', gap: '2rem', padding: '0.5rem 0', flexWrap: 'wrap' }}>
             <div>
@@ -153,7 +148,7 @@ export default function DashboardPage() {
         </div>
         {recent.length === 0 ? (
           <div className="table-empty">
-            <div className="icon">📋</div>
+            <div className="icon"><i className="ti ti-clipboard-list" style={{ fontSize: "2rem" }} /></div>
             <p>No detainees currently in custody</p>
             <button className="btn btn-primary" onClick={() => setShowBooking(true)} style={{ marginTop: '1rem' }}>+ New Booking</button>
           </div>

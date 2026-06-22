@@ -332,3 +332,114 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .main-content { margin-left: 0; }
   body { background: white; color: black; }
 }
+
+/* Booking tracker — dashboard landing widget */
+.tracker-card {
+  position: relative;
+  background: linear-gradient(135deg, var(--navy-800) 0%, var(--navy-700) 100%);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+  transition: var(--transition);
+  overflow: hidden;
+}
+.tracker-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 6px 24px rgba(212, 160, 23, 0.12);
+  transform: translateY(-1px);
+}
+.tracker-card-icon {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: rgba(212, 160, 23, 0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; color: var(--gold); flex-shrink: 0;
+}
+.tracker-card-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.tracker-card-sub { color: var(--text-muted); font-size: 0.875rem; margin-top: 0.3rem; line-height: 1.5; }
+
+/* Biometric scan mode selector */
+.scan-mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.85rem; }
+.scan-mode-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 1.25rem 1rem; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--navy-700);
+  cursor: pointer; transition: var(--transition); text-align: center;
+}
+.scan-mode-btn:hover { border-color: var(--gold); background: var(--navy-600); }
+.scan-mode-btn i { font-size: 1.75rem; color: var(--gold); }
+.scan-mode-btn .label { font-weight: 600; font-size: 0.9rem; }
+.scan-mode-btn .hint { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Scan preview frame */
+.scan-frame {
+  position: relative; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--border); background: var(--navy-900, #060b16);
+}
+.scan-frame video, .scan-frame img { width: 100%; display: block; }
+.scan-frame-badge {
+  position: absolute; top: 0.75rem; right: 0.75rem;
+  background: rgba(15, 23, 42, 0.85); color: var(--gold);
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--gold);
+}
+
+/* Searching state — pulsing scan animation */
+.scan-pulse {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  padding: 2.5rem 1rem; text-align: center;
+}
+.scan-pulse-ring {
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--gold);
+  animation: scanSpin 0.9s linear infinite;
+}
+@keyframes scanSpin { to { transform: rotate(360deg); } }
+.scan-pulse-text { color: var(--text-muted); font-size: 0.9rem; }
+
+/* Match result card */
+.match-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.25rem; background: var(--navy-700);
+  display: flex; gap: 1rem; align-items: flex-start;
+}
+.match-card .avatar {
+  width: 56px; height: 56px; border-radius: 10px; object-fit: cover;
+  border: 1px solid var(--border); flex-shrink: 0;
+}
+.match-card .name { font-size: 1.05rem; font-weight: 700; }
+.match-card .offender-no { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+.match-card .meta { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; }
+.confidence-pill {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem;
+  border-radius: 999px; background: rgba(245, 158, 11, 0.15); color: var(--amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Fingerprint panel */
+.fingerprint-panel {
+  border: 1px dashed var(--border); border-radius: var(--radius);
+  padding: 1rem; margin-top: 1rem; background: rgba(212, 160, 23, 0.03);
+}
+.fingerprint-preview {
+  width: 72px; height: 72px; border-radius: 10px; object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+/* Step indicator dots (booking modal) */
+.step-dots { display: flex; align-items: center; gap: 0.4rem; }
+.step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: var(--transition); }
+.step-dot.active { background: var(--gold); width: 18px; border-radius: 4px; }
+.step-dot.done { background: var(--green); }
+
+/* Generic fade-in for dynamically appearing sections */
+.fade-in { animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Spinning loader icon */
+.ti-loader-2 { display: inline-block; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+

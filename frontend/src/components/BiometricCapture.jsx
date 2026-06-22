@@ -10,10 +10,9 @@ import api from '../lib/api';
  * dedicated AFIS hardware/software the department hasn't procured).
  *
  * Fingerprint capture works with any USB scanner that has a Windows
- * driver exposing it as a standard image-capture device (most police
- * scanners, e.g. Futronic, SecuGen, work this way) — the officer scans
- * via the scanner's own capture software, then uploads the resulting
- * image file here, the same as uploading a photo.
+ * driver exposing it as a standard image-capture device — the officer
+ * scans via the scanner's own capture software, then uploads the
+ * resulting image file here, the same as uploading a photo.
  *
  * Props:
  *   onMatchFound(offender, confidence)  — face match confirmed
@@ -25,7 +24,6 @@ import api from '../lib/api';
  *   this booking is known, to save any fingerprint scan captured here.
  */
 const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, onNoMatch, onSkip }, ref) {
-  const [scanType, setScanType] = useState(null); // null | 'face' | 'fingerprint'
   const [mode, setMode] = useState('idle'); // idle | camera | searching | result
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
@@ -47,7 +45,7 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
         if (videoRef.current) videoRef.current.srcObject = stream;
       }, 50);
     } catch (e) {
-      setError('Could not access camera. You can upload a photo instead.');
+      setError('Could not access the camera. You can upload a photo instead.');
     }
   }, []);
 
@@ -84,13 +82,6 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
     setFingerprintPreview(URL.createObjectURL(file));
   };
 
-  /**
-   * Fingerprint has no matching engine yet, so it can't drive the
-   * search the way face capture does. Instead: stash the file, let the
-   * officer proceed via face/manual/skip, and attach the fingerprint
-   * to whichever Offender record that path resolves to. The parent
-   * (BookingModal) calls this once an offenderId exists.
-   */
   const attachPendingFingerprint = async (offenderId) => {
     if (!fingerprintFile || !offenderId) return;
     try {
@@ -103,7 +94,6 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
       });
     } catch (e) {
       console.error('Fingerprint attach failed:', e);
-      // Non-fatal — booking proceeds even if the fingerprint image fails to save
     }
   };
 
@@ -149,26 +139,32 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
   ];
 
   const FingerprintPanel = () => (
-    <div className="card" style={{ padding: '1rem', marginTop: '1rem', background: 'var(--bg-secondary, #f8f9fa)' }}>
-      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Fingerprint scan (optional)</div>
-      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-        Scan with your station's fingerprint device, then upload the saved image here.
-        Fingerprint matching against other records isn't available yet — this scan is stored
-        on file for visual reference once an offender record is created or matched by face.
+    <div className="fingerprint-panel fade-in">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, marginBottom: '0.4rem' }}>
+        <i className="ti ti-fingerprint" style={{ color: 'var(--gold)' }} />
+        Fingerprint scan
+        <span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--text-muted)', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
       </div>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+        Scan with your station's fingerprint device, then upload the saved image.
+        Matching against other records isn't available yet — this scan is stored
+        on file once an offender record is created or matched by face.
+      </p>
       {fingerprintPreview ? (
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <img src={fingerprintPreview} alt="Fingerprint scan" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
-          <div style={{ flex: 1 }}>
-            <select className="form-control" value={fingerPosition} onChange={e => setFingerPosition(e.target.value)} style={{ marginBottom: '0.5rem' }}>
+          <img src={fingerprintPreview} alt="Fingerprint scan" className="fingerprint-preview" />
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <select value={fingerPosition} onChange={e => setFingerPosition(e.target.value)} style={{ marginBottom: '0.5rem' }}>
               {FINGER_POSITIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setFingerprintFile(null); setFingerprintPreview(null); }}>Remove</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setFingerprintFile(null); setFingerprintPreview(null); }}>
+              <i className="ti ti-x" /> Remove
+            </button>
           </div>
         </div>
       ) : (
         <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-          🖐️ Upload fingerprint scan
+          <i className="ti ti-upload" /> Upload fingerprint scan
           <input type="file" accept="image/*" onChange={handleFingerprintUpload} style={{ display: 'none' }} />
         </label>
       )}
@@ -177,96 +173,123 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
 
   return (
     <div>
-      <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
-        Scan the offender's face and/or fingerprint to check if they've already been booked
-        at any station. This step is optional but recommended.
+      <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
+        <i className="ti ti-info-circle" />
+        Scan the offender's face and/or fingerprint to check for an existing record at any station.
+        This step is optional but recommended.
       </div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
-
-      {mode === 'idle' && !photoPreview && (
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={startCamera}>📷 Use camera</button>
-          <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-            🖼️ Upload photo
-            <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-          </label>
-          <button className="btn btn-ghost" onClick={onSkip}>Skip — enter details manually</button>
+      {error && (
+        <div className="alert alert-error fade-in" style={{ marginBottom: '1rem' }}>
+          <i className="ti ti-alert-triangle" /> {error}
         </div>
       )}
 
-      {mode === 'idle' && !photoPreview && <FingerprintPanel />}
+      {mode === 'idle' && !photoPreview && (
+        <div className="fade-in">
+          <div className="scan-mode-grid">
+            <div className="scan-mode-btn" onClick={startCamera}>
+              <i className="ti ti-camera" />
+              <span className="label">Use camera</span>
+              <span className="hint">Live face scan</span>
+            </div>
+            <label className="scan-mode-btn" style={{ cursor: 'pointer' }}>
+              <i className="ti ti-photo" />
+              <span className="label">Upload photo</span>
+              <span className="hint">From device storage</span>
+              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+            </label>
+            <div className="scan-mode-btn" onClick={onSkip}>
+              <i className="ti ti-pencil" />
+              <span className="label">Manual entry</span>
+              <span className="hint">Skip biometric scan</span>
+            </div>
+          </div>
+          <FingerprintPanel />
+        </div>
+      )}
 
       {mode === 'camera' && (
-        <div>
-          <video ref={videoRef} autoPlay playsInline style={{ width: '100%', maxWidth: 480, borderRadius: 8, background: '#000' }} />
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button className="btn btn-primary" onClick={capturePhoto}>Capture</button>
+        <div className="fade-in">
+          <div className="scan-frame">
+            <video ref={videoRef} autoPlay playsInline />
+            <span className="scan-frame-badge">Live</span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+            <button className="btn btn-primary" onClick={capturePhoto}><i className="ti ti-camera" /> Capture</button>
             <button className="btn btn-ghost" onClick={() => { stopCamera(); setMode('idle'); }}>Cancel</button>
           </div>
         </div>
       )}
 
       {mode === 'idle' && photoPreview && (
-        <div>
-          <img src={photoPreview} alt="Captured" style={{ width: 200, borderRadius: 8, marginBottom: '1rem' }} />
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button className="btn btn-primary" onClick={runSearch}>🔍 Search all stations</button>
-            <button className="btn btn-ghost" onClick={reset}>Retake</button>
+        <div className="fade-in">
+          <div className="scan-frame" style={{ maxWidth: 220 }}>
+            <img src={photoPreview} alt="Captured" />
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+            <button className="btn btn-primary" onClick={runSearch}><i className="ti ti-search" /> Search all stations</button>
+            <button className="btn btn-ghost" onClick={reset}><i className="ti ti-refresh" /> Retake</button>
           </div>
         </div>
       )}
 
       {mode === 'searching' && (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div>🔄 Searching biometric records across all stations...</div>
+        <div className="scan-pulse fade-in">
+          <div className="scan-pulse-ring" />
+          <div className="scan-pulse-text">Searching biometric records across all stations…</div>
         </div>
       )}
 
       {mode === 'result' && searchResult && (
-        <div>
-          <img src={photoPreview} alt="Captured" style={{ width: 150, borderRadius: 8, marginBottom: '1rem' }} />
+        <div className="fade-in">
+          <div className="scan-frame" style={{ maxWidth: 160, marginBottom: '1.25rem' }}>
+            <img src={photoPreview} alt="Captured" />
+          </div>
 
           {searchResult.match ? (
             <div>
-              <div className="alert" style={{ background: 'var(--amber-bg, #fff7e6)', border: '1px solid var(--amber, #d97706)', marginBottom: '1rem' }}>
-                <strong>⚠️ Possible match found</strong> — {Math.round(searchResult.match.confidence * 100)}% confidence
+              <div className="match-card" style={{ marginBottom: '1rem' }}>
+                <img src={photoPreview} alt="" className="avatar" />
+                <div style={{ flex: 1 }}>
+                  <div className="name">
+                    {searchResult.match.offender.firstName} {searchResult.match.offender.lastName}
+                    {searchResult.match.offender.alias && (
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> (aka {searchResult.match.offender.alias})</span>
+                    )}
+                  </div>
+                  <div className="offender-no">Offender No. {searchResult.match.offender.offenderNumber}</div>
+                  <div className="meta">
+                    {searchResult.match.priorBookingsCount} prior booking{searchResult.match.priorBookingsCount === 1 ? '' : 's'}
+                    {searchResult.match.priorStations.length > 0 && <> — {searchResult.match.priorStations.join(', ')}</>}
+                  </div>
+                  <div style={{ marginTop: '0.6rem' }}>
+                    <span className="confidence-pill">
+                      <i className="ti ti-shield-check" /> {Math.round(searchResult.match.confidence * 100)}% match confidence
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                  {searchResult.match.offender.firstName} {searchResult.match.offender.lastName}
-                  {searchResult.match.offender.alias && <span style={{ color: 'var(--text-muted)' }}> ({searchResult.match.offender.alias})</span>}
-                </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-                  Offender No: {searchResult.match.offender.offenderNumber}
-                </div>
-                <div style={{ marginTop: '0.5rem' }}>
-                  Prior bookings: <strong>{searchResult.match.priorBookingsCount}</strong>
-                  {searchResult.match.priorStations.length > 0 && (
-                    <> across <strong>{searchResult.match.priorStations.join(', ')}</strong></>
-                  )}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button className="btn btn-primary" onClick={() => onMatchFound(searchResult.match.offender, searchResult.match.confidence)}>
-                  ✓ Yes, this is the same person — add new offense
+                  <i className="ti ti-check" /> Same person — add new offense
                 </button>
                 <button className="btn btn-ghost" onClick={() => onNoMatch(searchResult.descriptor, searchResult.photoBuffer, photoPreview)}>
-                  Not a match — create new offender record
+                  Not a match — create new record
                 </button>
-                <button className="btn btn-ghost" onClick={reset}>Retake photo</button>
+                <button className="btn btn-ghost" onClick={reset}><i className="ti ti-refresh" /> Retake</button>
               </div>
             </div>
           ) : (
             <div>
               <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
-                ✓ No existing record found — this will be a new offender.
+                <i className="ti ti-circle-check" /> No existing record found — this will be a new offender.
               </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button className="btn btn-primary" onClick={() => onNoMatch(searchResult.descriptor, searchResult.photoBuffer, photoPreview)}>
-                  Continue with new offender
+                  <i className="ti ti-user-plus" /> Continue with new offender
                 </button>
-                <button className="btn btn-ghost" onClick={reset}>Retake photo</button>
+                <button className="btn btn-ghost" onClick={reset}><i className="ti ti-refresh" /> Retake</button>
               </div>
             </div>
           )}
