@@ -1,25 +1,37 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import api from '../lib/api';
 
 /**
  * BiometricCapture
  *
- * Step 0 of the booking flow. Lets the officer take or upload a face
- * photo, searches it against every offender across all stations, and
- * reports back to the parent:
- *   - a confirmed match (existing offender + their booking history), or
- *   - "no match" along with the extracted descriptor + photo so a new
- *     Offender can be created without re-uploading the photo.
+ * Lets the officer identify an offender via face scan (real matching,
+ * searched across all stations) or fingerprint scan (Phase 1: stored
+ * as an image only — no automated matching yet, since that requires
+ * dedicated AFIS hardware/software the department hasn't procured).
+ *
+ * Fingerprint capture works with any USB scanner that has a Windows
+ * driver exposing it as a standard image-capture device (most police
+ * scanners, e.g. Futronic, SecuGen, work this way) — the officer scans
+ * via the scanner's own capture software, then uploads the resulting
+ * image file here, the same as uploading a photo.
  *
  * Props:
- *   onMatchFound(offender)         — officer confirmed an existing match
+ *   onMatchFound(offender, confidence)  — face match confirmed
  *   onNoMatch(descriptor, photoBase64, photoPreviewUrl) — proceed as new offender
- *   onSkip()                       — officer chooses to skip biometric capture entirely
+ *   onSkip()                            — officer skips biometric capture entirely
+ *
+ * Ref:
+ *   attachPendingFingerprint(offenderId) — call once the offenderId for
+ *   this booking is known, to save any fingerprint scan captured here.
  */
-export default function BiometricCapture({ onMatchFound, onNoMatch, onSkip }) {
+const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, onNoMatch, onSkip }, ref) {
+  const [scanType, setScanType] = useState(null); // null | 'face' | 'fingerprint'
   const [mode, setMode] = useState('idle'); // idle | camera | searching | result
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
+  const [fingerprintFile, setFingerprintFile] = useState(null);
+  const [fingerprintPreview, setFingerprintPreview] = useState(null);
+  const [fingerPosition, setFingerPosition] = useState('RIGHT_INDEX');
   const [searchResult, setSearchResult] = useState(null);
   const [error, setError] = useState('');
   const videoRef = useRef(null);
@@ -65,6 +77,36 @@ export default function BiometricCapture({ onMatchFound, onNoMatch, onSkip }) {
     setPhotoPreview(URL.createObjectURL(file));
   };
 
+  const handleFingerprintUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFingerprintFile(file);
+    setFingerprintPreview(URL.createObjectURL(file));
+  };
+
+  /**
+   * Fingerprint has no matching engine yet, so it can't drive the
+   * search the way face capture does. Instead: stash the file, let the
+   * officer proceed via face/manual/skip, and attach the fingerprint
+   * to whichever Offender record that path resolves to. The parent
+   * (BookingModal) calls this once an offenderId exists.
+   */
+  const attachPendingFingerprint = async (offenderId) => {
+    if (!fingerprintFile || !offenderId) return;
+    try {
+      const formData = new FormData();
+      formData.append('scan', fingerprintFile, 'fingerprint.jpg');
+      formData.append('offenderId', offenderId);
+      formData.append('fingerPosition', fingerPosition);
+      await api.post('/biometrics/fingerprint/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    } catch (e) {
+      console.error('Fingerprint attach failed:', e);
+      // Non-fatal — booking proceeds even if the fingerprint image fails to save
+    }
+  };
+
   const runSearch = async () => {
     if (!photoFile) return;
     setMode('searching');
@@ -83,6 +125,8 @@ export default function BiometricCapture({ onMatchFound, onNoMatch, onSkip }) {
     }
   };
 
+  useImperativeHandle(ref, () => ({ attachPendingFingerprint }));
+
   const reset = () => {
     setPhotoFile(null);
     setPhotoPreview(null);
@@ -91,11 +135,51 @@ export default function BiometricCapture({ onMatchFound, onNoMatch, onSkip }) {
     setMode('idle');
   };
 
+  const FINGER_POSITIONS = [
+    { value: 'RIGHT_THUMB', label: 'Right thumb' },
+    { value: 'RIGHT_INDEX', label: 'Right index' },
+    { value: 'RIGHT_MIDDLE', label: 'Right middle' },
+    { value: 'RIGHT_RING', label: 'Right ring' },
+    { value: 'RIGHT_LITTLE', label: 'Right little' },
+    { value: 'LEFT_THUMB', label: 'Left thumb' },
+    { value: 'LEFT_INDEX', label: 'Left index' },
+    { value: 'LEFT_MIDDLE', label: 'Left middle' },
+    { value: 'LEFT_RING', label: 'Left ring' },
+    { value: 'LEFT_LITTLE', label: 'Left little' },
+  ];
+
+  const FingerprintPanel = () => (
+    <div className="card" style={{ padding: '1rem', marginTop: '1rem', background: 'var(--bg-secondary, #f8f9fa)' }}>
+      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Fingerprint scan (optional)</div>
+      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+        Scan with your station's fingerprint device, then upload the saved image here.
+        Fingerprint matching against other records isn't available yet — this scan is stored
+        on file for visual reference once an offender record is created or matched by face.
+      </div>
+      {fingerprintPreview ? (
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <img src={fingerprintPreview} alt="Fingerprint scan" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+          <div style={{ flex: 1 }}>
+            <select className="form-control" value={fingerPosition} onChange={e => setFingerPosition(e.target.value)} style={{ marginBottom: '0.5rem' }}>
+              {FINGER_POSITIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+            </select>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setFingerprintFile(null); setFingerprintPreview(null); }}>Remove</button>
+          </div>
+        </div>
+      ) : (
+        <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+          🖐️ Upload fingerprint scan
+          <input type="file" accept="image/*" onChange={handleFingerprintUpload} style={{ display: 'none' }} />
+        </label>
+      )}
+    </div>
+  );
+
   return (
     <div>
       <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
-        Capture a face photo to check if this person has already been booked at any station.
-        This step is optional but recommended.
+        Scan the offender's face and/or fingerprint to check if they've already been booked
+        at any station. This step is optional but recommended.
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
@@ -110,6 +194,8 @@ export default function BiometricCapture({ onMatchFound, onNoMatch, onSkip }) {
           <button className="btn btn-ghost" onClick={onSkip}>Skip — enter details manually</button>
         </div>
       )}
+
+      {mode === 'idle' && !photoPreview && <FingerprintPanel />}
 
       {mode === 'camera' && (
         <div>
@@ -184,8 +270,12 @@ export default function BiometricCapture({ onMatchFound, onNoMatch, onSkip }) {
               </div>
             </div>
           )}
+
+          <FingerprintPanel />
         </div>
       )}
     </div>
   );
-}
+});
+
+export default BiometricCapture;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api';
 import { saveDetaineeOffline } from '../lib/db';
 import useAuthStore from '../store/authStore';
@@ -13,6 +13,7 @@ export default function BookingModal({ onClose, onBooked }) {
   const [step, setStep] = useState(0); // step 0 = biometric capture
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const biometricRef = useRef(null);
 
   // Biometric linkage carried through to submission
   const [matchedOffender, setMatchedOffender] = useState(null); // existing offender, if matched
@@ -84,10 +85,11 @@ export default function BookingModal({ onClose, onBooked }) {
       // Resolve the offenderId before creating the booking.
       let offenderId = matchedOffender?.id;
 
-      if (!offenderId && matchMethod === 'NEW_OFFENDER' && navigator.onLine) {
-        // Create the persistent Offender identity now, carrying over the
-        // face descriptor already extracted during the search step so we
-        // don't need to re-upload or re-process the photo.
+      if (!offenderId && (matchMethod === 'NEW_OFFENDER' || matchMethod === 'MANUAL') && navigator.onLine) {
+        // Create the persistent Offender identity now. For NEW_OFFENDER
+        // this carries over the face descriptor already extracted during
+        // the search step; for MANUAL (officer skipped biometric capture
+        // entirely) there's no descriptor, just the typed-in details.
         const offenderRes = await api.post('/biometrics/offenders', {
           firstName: form.firstName,
           lastName: form.lastName,
@@ -100,6 +102,12 @@ export default function BookingModal({ onClose, onBooked }) {
           photoBuffer: newOffenderBiometric?.photoBuffer,
         });
         offenderId = offenderRes.data.id;
+      }
+
+      // If a fingerprint scan was captured during step 0, attach it now
+      // that we know which Offender record it belongs to.
+      if (offenderId && biometricRef.current?.attachPendingFingerprint) {
+        await biometricRef.current.attachPendingFingerprint(offenderId);
       }
 
       const data = {
@@ -159,6 +167,7 @@ export default function BookingModal({ onClose, onBooked }) {
 
           {step === 0 && (
             <BiometricCapture
+              ref={biometricRef}
               onMatchFound={handleMatchFound}
               onNoMatch={handleNoMatch}
               onSkip={handleSkipBiometric}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import api from '../lib/api';
+import BookingModal from '../components/BookingModal';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -9,8 +10,9 @@ export default function DashboardPage() {
   const [recent, setRecent] = useState([]);
   const [biometricStats, setBiometricStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showBooking, setShowBooking] = useState(false);
 
-  useEffect(() => {
+  const loadDashboard = () => {
     if (user?.role === 'SUPER_ADMIN') return;
     Promise.all([
       api.get('/detainees/stats'),
@@ -21,7 +23,16 @@ export default function DashboardPage() {
       setRecent(r.data.detainees || []);
       setBiometricStats(b.data);
     }).catch(console.error).finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDashboard();
   }, [user]);
+
+  const handleBooked = () => {
+    setShowBooking(false);
+    loadDashboard();
+  };
 
   if (user?.role === 'SUPER_ADMIN') {
     return (
@@ -56,8 +67,37 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString('en-PG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <Link to="/detainees" className="btn btn-primary">+ New Booking</Link>
+        <button className="btn btn-primary" onClick={() => setShowBooking(true)}>+ New Booking</button>
       </div>
+
+      <div
+        className="card"
+        style={{
+          marginBottom: '1.5rem',
+          borderLeft: '4px solid var(--gold, #d4af37)',
+          background: 'var(--bg-secondary, #faf8f2)',
+          cursor: 'pointer',
+        }}
+        onClick={() => setShowBooking(true)}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '0.5rem 0' }}>
+          <div style={{ fontSize: '2.5rem' }}>📷🖐️</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>Booking Tracker</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+              Scan the offender's face or fingerprint to check for an existing record across all stations,
+              then add a new offense or start a fresh booking.
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); setShowBooking(true); }}>
+            Start Scan →
+          </button>
+        </div>
+      </div>
+
+      {showBooking && (
+        <BookingModal onClose={() => setShowBooking(false)} onBooked={handleBooked} />
+      )}
 
       <div className="stat-grid">
         <div className="stat-card red">
@@ -115,7 +155,7 @@ export default function DashboardPage() {
           <div className="table-empty">
             <div className="icon">📋</div>
             <p>No detainees currently in custody</p>
-            <Link to="/detainees" className="btn btn-primary" style={{ marginTop: '1rem' }}>+ New Booking</Link>
+            <button className="btn btn-primary" onClick={() => setShowBooking(true)} style={{ marginTop: '1rem' }}>+ New Booking</button>
           </div>
         ) : (
           <div className="table-wrap">
