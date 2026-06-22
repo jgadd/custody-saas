@@ -314,8 +314,15 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 /* Responsive */
 .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; color: var(--text); font-size: 1.25rem; }
 
+@media (max-width: 1024px) {
+  .sidebar { width: 220px; }
+  .main-content { margin-left: 220px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .scan-choice-grid { gap: 0.75rem; }
+}
+
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
+  .sidebar { width: 260px; transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .main-content { margin-left: 0; }
   .hamburger { display: block; }
@@ -325,6 +332,43 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .modal-overlay { align-items: flex-end; padding: 0; }
   .page-content { padding: 1rem; }
   .topbar { padding: 0 1rem; }
+
+  /* Booking tracker + biometric capture */
+  .tracker-card { padding: 1.1rem; }
+  .tracker-card > div { flex-wrap: wrap; gap: 0.85rem; }
+  .tracker-card-icon { width: 44px; height: 44px; font-size: 1.25rem; }
+  .tracker-card .btn { width: 100%; justify-content: center; }
+
+  .scan-choice-grid { grid-template-columns: 1fr; }
+  .scan-mode-grid { grid-template-columns: 1fr; }
+
+  .match-card { flex-direction: column; align-items: flex-start; }
+  .match-card .avatar { width: 64px; height: 64px; }
+
+  .scan-frame { max-width: 100% !important; }
+
+  /* Modal header: stack title/dots/close more compactly */
+  .modal-header { flex-wrap: wrap; padding: 1rem 1.25rem; }
+  .modal-header h2 { font-size: 1rem; }
+  .step-dots { order: 3; width: 100%; justify-content: center; margin-top: 0.5rem; }
+
+  /* Tabs scroll horizontally instead of wrapping awkwardly */
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .tab { flex-shrink: 0; padding: 0.6rem 0.9rem; font-size: 0.8rem; }
+
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+  .modal-body { max-height: 75vh !important; }
+  .dashboard-header { flex-direction: column; align-items: stretch !important; gap: 0.85rem; }
+  .dashboard-header .btn { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .tracker-card-sub { font-size: 0.825rem; }
+  .scan-choice-card, .scan-mode-btn { padding: 1.1rem 0.85rem; }
+  .scan-upload-zone { padding: 1.75rem 1rem; }
+  .login-card { max-width: 100%; padding: 0 0.5rem; }
 }
 
 @media print {
@@ -373,12 +417,41 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .scan-mode-btn .label { font-weight: 600; font-size: 0.9rem; }
 .scan-mode-btn .hint { font-size: 0.75rem; color: var(--text-muted); }
 
+/* Scan type choice (face vs fingerprint) — the first decision screen */
+.scan-choice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.scan-choice-card {
+  padding: 1.5rem 1.25rem; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--navy-700);
+  cursor: pointer; transition: var(--transition); text-align: center;
+}
+.scan-choice-card:hover:not(.disabled) { border-color: var(--gold); background: var(--navy-600); transform: translateY(-2px); }
+.scan-choice-card.disabled { cursor: not-allowed; opacity: 0.45; }
+.scan-choice-icon {
+  width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 0.75rem;
+  background: rgba(212, 160, 23, 0.12); color: var(--gold);
+  display: flex; align-items: center; justify-content: center; font-size: 1.75rem;
+}
+.scan-choice-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+.scan-choice-sub { font-size: 0.8rem; color: var(--text-muted); line-height: 1.45; }
+
+/* Fingerprint upload zone */
+.scan-upload-zone {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 2.5rem 1.5rem; border-radius: var(--radius);
+  border: 2px dashed var(--border); cursor: pointer; transition: var(--transition);
+  text-align: center;
+}
+.scan-upload-zone:hover { border-color: var(--gold); background: rgba(212, 160, 23, 0.04); }
+.scan-upload-zone i { font-size: 2.25rem; color: var(--gold); }
+.scan-upload-zone .label { font-weight: 600; }
+.scan-upload-zone .hint { font-size: 0.8rem; color: var(--text-muted); max-width: 320px; }
+
 /* Scan preview frame */
 .scan-frame {
   position: relative; border-radius: var(--radius); overflow: hidden;
   border: 1px solid var(--border); background: var(--navy-900, #060b16);
 }
-.scan-frame video, .scan-frame img { width: 100%; display: block; }
+.scan-frame video, .scan-frame img { width: 100%; max-height: 360px; object-fit: cover; display: block; }
 .scan-frame-badge {
   position: absolute; top: 0.75rem; right: 0.75rem;
   background: rgba(15, 23, 42, 0.85); color: var(--gold);

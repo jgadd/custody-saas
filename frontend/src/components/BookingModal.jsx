@@ -172,14 +172,14 @@ export default function BookingModal({ onClose, onBooked }) {
         <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>⚠️ {error}</div>}
 
-          {step === 0 && (
+          <div style={{ display: step === 0 ? 'block' : 'none' }}>
             <BiometricCapture
               ref={biometricRef}
               onMatchFound={handleMatchFound}
               onNoMatch={handleNoMatch}
               onSkip={handleSkipBiometric}
             />
-          )}
+          </div>
 
           {matchedOffender && step > 0 && (
             <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
