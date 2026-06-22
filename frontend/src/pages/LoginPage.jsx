@@ -47,13 +47,6 @@ export default function LoginPage() {
               {loading ? '🔄 Signing in...' : '🔐 Sign In'}
             </button>
           </form>
-
-          <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--navy-700)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <strong style={{ color: 'var(--gold)' }}>Demo Accounts:</strong><br/>
-            Super Admin: superadmin@custody.gov.pg / admin123<br/>
-            Station Admin: admin@boroko.police.gov.pg / boroko123<br/>
-            Officer: officer@boroko.police.gov.pg / officer123
-          </div>
         </div>
         <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
           © {new Date().getFullYear()} Royal Papua New Guinea Constabulary. All rights reserved.
