@@ -30,7 +30,9 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           <Link to="/admin" className="card" style={{ textDecoration: 'none', display: 'block', borderLeft: '4px solid var(--purple)' }}>
             <div className="stat-label">Super Admin Portal</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '0.5rem' }}>🛡️ Open Dashboard</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <img src="/rpngc-crest.png" alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> Open Dashboard
+            </div>
           </Link>
           <Link to="/admin/stations" className="card" style={{ textDecoration: 'none', display: 'block', borderLeft: '4px solid var(--blue)' }}>
             <div className="stat-label">Police Stations</div>

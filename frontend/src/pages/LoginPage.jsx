@@ -21,7 +21,7 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="card" style={{ padding: '2rem' }}>
           <div className="login-header">
-            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🛡️</div>
+            <img src="/rpngc-crest.png" alt="RPNGC Emblem" style={{ width: 64, height: 'auto', marginBottom: '0.5rem' }} />
             <h1>RPNGC Custody System</h1>
             <div className="login-divider" />
             <p>Royal Papua New Guinea Constabulary</p>

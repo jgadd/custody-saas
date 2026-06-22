@@ -10,7 +10,9 @@ export default function AdminDashboard() {
   return (
     <div>
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ color: 'var(--purple)' }}>🛡️ Super Admin Dashboard</h1>
+        <h1 style={{ color: 'var(--purple)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <img src="/rpngc-crest.png" alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} /> Super Admin Dashboard
+        </h1>
         <p style={{ color: 'var(--text-muted)' }}>Platform-wide overview — RPNGC Custody Management SaaS</p>
       </div>
 

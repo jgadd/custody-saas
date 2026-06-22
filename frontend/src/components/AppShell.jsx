@@ -52,7 +52,7 @@ export default function AppShell() {
   ];
 
   const superAdminItems = [
-    { to: '/admin', icon: '🛡️', label: 'Super Dashboard' },
+    { to: '/admin', icon: <img src="/rpngc-crest.png" alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />, label: 'Super Dashboard' },
     { to: '/admin/stations', icon: '🏢', label: 'Manage Stations' },
     { to: '/admin/users', icon: '👥', label: 'All Users' },
     { to: '/admin/plans', icon: '💳', label: 'Plans' },
