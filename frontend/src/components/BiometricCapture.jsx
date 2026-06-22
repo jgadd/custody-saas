@@ -22,8 +22,9 @@ import { supportsFingerprintCapture } from '../lib/device';
  *   onSkip()                            — officer skips biometric capture entirely
  *
  * Ref:
- *   attachPendingFingerprint(offenderId) — call once the offenderId for
- *   this booking is known, to save any fingerprint scan captured here.
+ *   getPendingFingerprint() — returns the captured fingerprint as
+ *   base64 (or null), for the parent to bundle into the single
+ *   transactional booking request. Nothing is uploaded from here.
  */
 const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, onNoMatch, onSkip }, ref) {
   const [scanType, setScanType] = useState(null); // null | 'face' | 'fingerprint'
@@ -87,19 +88,22 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
     setFingerprintPreview(URL.createObjectURL(file));
   };
 
-  const attachPendingFingerprint = async (offenderId) => {
-    if (!fingerprintFile || !offenderId) return;
-    try {
-      const formData = new FormData();
-      formData.append('scan', fingerprintFile, 'fingerprint.jpg');
-      formData.append('offenderId', offenderId);
-      formData.append('fingerPosition', fingerPosition);
-      await api.post('/biometrics/fingerprint/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    } catch (e) {
-      console.error('Fingerprint attach failed:', e);
-    }
+  /**
+   * Returns the captured fingerprint as base64, for the parent
+   * (BookingModal) to bundle into the single transactional booking
+   * request — nothing is uploaded or written to disk from here. This
+   * keeps biometric data out of the database entirely unless the
+   * booking itself is actually confirmed.
+   */
+  const getPendingFingerprint = async () => {
+    if (!fingerprintFile) return null;
+    const buffer = await fingerprintFile.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    return {
+      buffer: base64,
+      mimetype: fingerprintFile.type || 'image/jpeg',
+      fingerPosition,
+    };
   };
 
   const runSearch = async () => {
@@ -120,7 +124,7 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
     }
   };
 
-  useImperativeHandle(ref, () => ({ attachPendingFingerprint }));
+  useImperativeHandle(ref, () => ({ getPendingFingerprint }));
 
   const resetFace = () => {
     setPhotoFile(null);

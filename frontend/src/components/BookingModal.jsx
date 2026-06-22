@@ -82,15 +82,32 @@ export default function BookingModal({ onClose, onBooked }) {
     setLoading(true); setError('');
 
     try {
-      // Resolve the offenderId before creating the booking.
-      let offenderId = matchedOffender?.id;
+      const pendingFingerprint = biometricRef.current?.getPendingFingerprint
+        ? await biometricRef.current.getPendingFingerprint()
+        : null;
 
-      if (!offenderId && (matchMethod === 'NEW_OFFENDER' || matchMethod === 'MANUAL') && navigator.onLine) {
-        // Create the persistent Offender identity now. For NEW_OFFENDER
-        // this carries over the face descriptor already extracted during
-        // the search step; for MANUAL (officer skipped biometric capture
-        // entirely) there's no descriptor, just the typed-in details.
-        const offenderRes = await api.post('/biometrics/offenders', {
+      const data = {
+        ...form,
+        bookingTime: new Date(form.bookingTime).toISOString(),
+        status: 'IN_CUSTODY',
+        stationId: user?.stationId,
+        matchMethod,
+        matchConfidence: matchMethod === 'FACE_MATCH' ? matchConfidenceValue : null,
+        pendingFingerprint,
+      };
+      if (!data.cellId) delete data.cellId;
+      if (!data.courtDate) delete data.courtDate;
+      if (!data.bailAmount) delete data.bailAmount;
+      if (!data.propertyList) delete data.propertyList;
+
+      if (matchedOffender) {
+        // Existing offender — link directly, nothing new to create.
+        data.offenderId = matchedOffender.id;
+      } else if (matchMethod === 'NEW_OFFENDER' || matchMethod === 'MANUAL') {
+        // New offender — the server creates this Offender (and any
+        // face biometric) in the SAME transaction as the booking, so
+        // nothing is persisted unless the booking itself succeeds.
+        data.newOffender = {
           firstName: form.firstName,
           lastName: form.lastName,
           alias: form.alias,
@@ -100,38 +117,18 @@ export default function BookingModal({ onClose, onBooked }) {
           ethnicity: form.ethnicity,
           descriptor: newOffenderBiometric?.descriptor,
           photoBuffer: newOffenderBiometric?.photoBuffer,
-        });
-        offenderId = offenderRes.data.id;
+        };
       }
-
-      // If a fingerprint scan was captured during step 0, attach it now
-      // that we know which Offender record it belongs to.
-      if (offenderId && biometricRef.current?.attachPendingFingerprint) {
-        await biometricRef.current.attachPendingFingerprint(offenderId);
-      }
-
-      const data = {
-        ...form,
-        bookingTime: new Date(form.bookingTime).toISOString(),
-        status: 'IN_CUSTODY',
-        stationId: user?.stationId,
-        offenderId,
-        matchMethod,
-        matchConfidence: matchMethod === 'FACE_MATCH' ? matchConfidenceValue : null,
-      };
-      if (!data.cellId) delete data.cellId;
-      if (!data.courtDate) delete data.courtDate;
-      if (!data.bailAmount) delete data.bailAmount;
-      if (!data.propertyList) delete data.propertyList;
 
       if (navigator.onLine) {
         const res = await api.post('/detainees', data);
         onBooked(res.data);
       } else {
-        // Offline: offender creation requires a server round-trip for the
-        // face match, so offline-created bookings always fall back to
-        // manual entry — they sync as MANUAL and can be linked to an
-        // Offender later by station staff once back online.
+        // Offline: offender/biometric creation requires a server
+        // round-trip, so offline-created bookings always fall back to
+        // manual entry — they sync as MANUAL once back online, and the
+        // sync route creates the offender then too, same transactional
+        // guarantee applies server-side.
         const offline = { ...data, id: uuidv4(), custodyNumber: '(pending)', matchMethod: 'MANUAL', offenderId: null, _syncStatus: 'pending' };
         await saveDetaineeOffline(offline);
         onBooked(offline);
