@@ -1,27 +1,37 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --navy: #0f172a;
-  --navy-800: #1e293b;
-  --navy-700: #273449;
-  --navy-600: #334155;
-  --navy-500: #475569;
-  --gold: #d4a017;
-  --gold-light: #f0c040;
-  --red: #ef4444;
-  --red-dark: #b91c1c;
-  --green: #22c55e;
+  /* Primary surfaces — light theme, matching the emblem's white/silver field */
+  --navy: #f4f6f9;          /* page background */
+  --navy-800: #ffffff;      /* card / surface background */
+  --navy-700: #eef1f6;      /* secondary surface (hover states, panels) */
+  --navy-600: #e2e7ee;      /* subtle fills, disabled backgrounds */
+  --navy-500: #cbd5e1;      /* stronger fills */
+
+  /* Primary accent — the emblem's navy blue ribbon */
+  --gold: #1e3a8a;          /* kept as --gold for compatibility: now the primary accent color */
+  --gold-light: #2c4ea3;    /* hover/lighter variant of the primary accent */
+
+  /* Alerts, danger actions, critical badges — the emblem's red shield */
+  --red: #dc2626;
+  --red-dark: #991b1b;
+
+  --green: #16a34a;
   --green-dark: #15803d;
-  --amber: #f59e0b;
-  --blue: #3b82f6;
-  --purple: #a855f7;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --border: #334155;
-  --card: #1e293b;
-  --input-bg: #273449;
+  --amber: #d97706;
+  --blue: #1e3a8a;
+  --purple: #7e22ce;
+
+  /* Text */
+  --text: #0f172a;
+  --text-muted: #64748b;
+
+  --border: #d6dde6;
+  --card: #ffffff;
+  --input-bg: #ffffff;
+
   --radius: 8px;
-  --shadow: 0 4px 20px rgba(0,0,0,0.4);
+  --shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
   --transition: all 0.2s ease;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
@@ -72,7 +82,7 @@ p { line-height: 1.6; }
   border-left: 3px solid transparent;
 }
 .nav-item:hover { background: var(--navy-700); color: var(--text); }
-.nav-item.active { background: rgba(212,160,23,0.1); color: var(--gold); border-left-color: var(--gold); font-weight: 600; }
+.nav-item.active { background: rgba(30,58,138,0.1); color: var(--gold); border-left-color: var(--gold); font-weight: 600; }
 .nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
 .nav-badge {
   margin-left: auto; background: var(--red); color: white;
@@ -148,7 +158,7 @@ input, select, textarea {
   font-size: 0.9rem; transition: var(--transition); font-family: inherit;
 }
 input:focus, select:focus, textarea:focus {
-  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,160,23,0.15);
+  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(30,58,138,0.15);
 }
 input::placeholder, textarea::placeholder { color: var(--navy-500); }
 select option { background: var(--navy-800); }
@@ -180,7 +190,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
 .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); }
 .badge-gray { background: rgba(148,163,184,0.15); color: var(--text-muted); }
-.badge-gold { background: rgba(212,160,23,0.15); color: var(--gold); }
+.badge-gold { background: rgba(30,58,138,0.15); color: var(--gold); }
 
 /* Risk colors */
 .risk-LOW { color: var(--green); }
@@ -214,10 +224,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 /* Alert / Toast */
 .alert { padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
-.alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
-.alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
-.alert-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #fcd34d; }
-.alert-info { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; }
+.alert-error { background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25); color: #b91c1c; }
+.alert-success { background: rgba(22,163,74,0.08); border: 1px solid rgba(22,163,74,0.25); color: #166534; }
+.alert-warn { background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.25); color: #92400e; }
+.alert-info { background: rgba(30,58,138,0.08); border: 1px solid rgba(30,58,138,0.25); color: #1e3a8a; }
 
 /* Toast container */
 .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -232,7 +242,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 /* Login page */
 .login-page {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: var(--navy); background-image: radial-gradient(ellipse at 20% 50%, rgba(212,160,23,0.05) 0%, transparent 60%);
+  background: var(--navy); background-image: radial-gradient(ellipse at 20% 50%, rgba(30,58,138,0.05) 0%, transparent 60%);
 }
 .login-card { width: 100%; max-width: 420px; }
 .login-header { text-align: center; margin-bottom: 2rem; }
@@ -265,7 +275,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 }
 .cell-card:hover { border-color: var(--gold); }
 .cell-card.full { border-color: var(--red); background: rgba(239,68,68,0.05); }
-.cell-card.selected { border-color: var(--gold); background: rgba(212,160,23,0.1); }
+.cell-card.selected { border-color: var(--gold); background: rgba(30,58,138,0.1); }
 .cell-number { font-size: 1.5rem; font-weight: 800; }
 .cell-type { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
 .cell-count { font-size: 0.85rem; margin-top: 0.25rem; }
@@ -392,12 +402,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 }
 .tracker-card:hover {
   border-color: var(--gold);
-  box-shadow: 0 6px 24px rgba(212, 160, 23, 0.12);
+  box-shadow: 0 6px 24px rgba(30, 58, 138, 0.12);
   transform: translateY(-1px);
 }
 .tracker-card-icon {
   width: 52px; height: 52px; border-radius: 12px;
-  background: rgba(212, 160, 23, 0.12);
+  background: rgba(30, 58, 138, 0.12);
   display: flex; align-items: center; justify-content: center;
   font-size: 1.5rem; color: var(--gold); flex-shrink: 0;
 }
@@ -428,7 +438,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .scan-choice-card.disabled { cursor: not-allowed; opacity: 0.45; }
 .scan-choice-icon {
   width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 0.75rem;
-  background: rgba(212, 160, 23, 0.12); color: var(--gold);
+  background: rgba(30, 58, 138, 0.12); color: var(--gold);
   display: flex; align-items: center; justify-content: center; font-size: 1.75rem;
 }
 .scan-choice-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
@@ -441,7 +451,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   border: 2px dashed var(--border); cursor: pointer; transition: var(--transition);
   text-align: center;
 }
-.scan-upload-zone:hover { border-color: var(--gold); background: rgba(212, 160, 23, 0.04); }
+.scan-upload-zone:hover { border-color: var(--gold); background: rgba(30, 58, 138, 0.04); }
 .scan-upload-zone i { font-size: 2.25rem; color: var(--gold); }
 .scan-upload-zone .label { font-weight: 600; }
 .scan-upload-zone .hint { font-size: 0.8rem; color: var(--text-muted); max-width: 320px; }
@@ -495,7 +505,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 /* Fingerprint panel */
 .fingerprint-panel {
   border: 1px dashed var(--border); border-radius: var(--radius);
-  padding: 1rem; margin-top: 1rem; background: rgba(212, 160, 23, 0.03);
+  padding: 1rem; margin-top: 1rem; background: rgba(30, 58, 138, 0.03);
 }
 .fingerprint-preview {
   width: 72px; height: 72px; border-radius: 10px; object-fit: cover;
