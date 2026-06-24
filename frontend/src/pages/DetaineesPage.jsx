@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
 import { getAllDetainees, saveDetaineeOffline } from '../lib/db';
 import useAuthStore from '../store/authStore';
-import BookingModal from '../components/BookingModal';
+import RegisterBookingModal from '../components/RegisterBookingModal';
 
 export default function DetaineesPage() {
   const { user } = useAuthStore();
@@ -162,7 +162,7 @@ export default function DetaineesPage() {
       </div>
 
       {showBooking && (
-        <BookingModal onClose={() => setShowBooking(false)} onBooked={handleBooked} />
+        <RegisterBookingModal onClose={() => setShowBooking(false)} onBooked={handleBooked} />
       )}
     </div>
   );

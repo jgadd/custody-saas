@@ -5,24 +5,29 @@ import useAuthStore from '../store/authStore';
 import { v4 as uuidv4 } from 'uuid';
 import BiometricCapture from './BiometricCapture';
 
+/**
+ * RegisterBookingModal
+ *
+ * The Custody Register's "New Booking" form. This always registers a
+ * brand-new offender — face and/or fingerprint capture here is
+ * registration only, with no search against other stations' records.
+ *
+ * Checking whether a person is already known to the system lives
+ * separately, in the dashboard's Booking Tracker (DashboardBookingModal)
+ * — by the time an officer opens this form, that decision has already
+ * been made.
+ */
+
 const CHARGES = ['Assault', 'Armed Robbery', 'Theft', 'Drug Possession', 'Drug Trafficking', 'Murder', 'Rape', 'Domestic Violence', 'Traffic Offence', 'Drunk and Disorderly', 'Criminal Trespass', 'Fraud', 'Arson', 'Wilful Damage', 'Other'];
 
-export default function BookingModal({ onClose, onBooked }) {
+export default function RegisterBookingModal({ onClose, onBooked }) {
   const { user } = useAuthStore();
   const [cells, setCells] = useState([]);
-  const [step, setStep] = useState(0); // step 0 = check-if-known landing choice
+  const [step, setStep] = useState(1); // starts at Personal Details — no check-if-known step here
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const biometricRef = useRef(null); // check-mode instance
-  const registerBiometricRef = useRef(null); // register-mode instance (inside step 1)
-  const [showCheckFlow, setShowCheckFlow] = useState(false); // landing choice: true = running the check, false = choice screen
-
-  // Biometric linkage carried through to submission
-  const [matchedOffender, setMatchedOffender] = useState(null); // existing offender, if matched
-  const [matchConfidenceValue, setMatchConfidenceValue] = useState(null); // confidence score from face search
-  const [newOffenderBiometric, setNewOffenderBiometric] = useState(null); // { descriptor, photoBuffer } for new offender
-  const [matchMethod, setMatchMethod] = useState('MANUAL'); // FACE_MATCH | MANUAL | NEW_OFFENDER
-  const [biometricStepDone, setBiometricStepDone] = useState(false);
+  const registerBiometricRef = useRef(null);
+  const [newOffenderBiometric, setNewOffenderBiometric] = useState(null); // { descriptor, photoBuffer }
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', alias: '', dateOfBirth: '', gender: 'MALE',
@@ -45,45 +50,6 @@ export default function BookingModal({ onClose, onBooked }) {
     set('charges', form.charges.includes(c) ? form.charges.filter(x => x !== c) : [...form.charges, c]);
   };
 
-  // "Check if known" handlers
-  const handleMatchFound = (offender, confidence) => {
-    setMatchedOffender(offender);
-    setMatchConfidenceValue(confidence);
-    setMatchMethod('FACE_MATCH');
-    setBiometricStepDone(true);
-    // Pre-fill the form with the matched offender's known details
-    setForm(f => ({
-      ...f,
-      firstName: offender.firstName,
-      lastName: offender.lastName,
-      alias: offender.alias || '',
-      dateOfBirth: offender.dateOfBirth ? offender.dateOfBirth.slice(0, 10) : '',
-      gender: offender.gender,
-      nationality: offender.nationality,
-      ethnicity: offender.ethnicity || '',
-    }));
-    // Match found — biometrics already exist, skip straight past the
-    // personal-details/registration step to charges.
-    setStep(2);
-  };
-
-  const handleNoMatch = () => {
-    // Checked, no match — proceed to the booking form where biometrics
-    // get registered fresh as part of step 1.
-    setMatchMethod('NEW_OFFENDER');
-    setBiometricStepDone(true);
-    setStep(1);
-  };
-
-  const handleSkipBiometric = () => {
-    // Skipped the check entirely — proceed straight to the booking
-    // form, where the officer can still register face/fingerprint
-    // fresh, or skip that too for a fully manual entry.
-    setMatchMethod('MANUAL');
-    setBiometricStepDone(true);
-    setStep(1);
-  };
-
   const handleSubmit = async () => {
     if (!form.firstName || !form.lastName) { setError('First and last name are required'); return; }
     if (form.charges.length === 0 && !form.offense) { setError('At least one charge is required'); return; }
@@ -99,23 +65,13 @@ export default function BookingModal({ onClose, onBooked }) {
         bookingTime: new Date(form.bookingTime).toISOString(),
         status: 'IN_CUSTODY',
         stationId: user?.stationId,
-        matchMethod,
-        matchConfidence: matchMethod === 'FACE_MATCH' ? matchConfidenceValue : null,
+        matchMethod: 'NEW_OFFENDER',
+        matchConfidence: null,
         pendingFingerprint,
-      };
-      if (!data.cellId) delete data.cellId;
-      if (!data.courtDate) delete data.courtDate;
-      if (!data.bailAmount) delete data.bailAmount;
-      if (!data.propertyList) delete data.propertyList;
-
-      if (matchedOffender) {
-        // Existing offender — link directly, nothing new to create.
-        data.offenderId = matchedOffender.id;
-      } else if (matchMethod === 'NEW_OFFENDER' || matchMethod === 'MANUAL') {
-        // New offender — the server creates this Offender (and any
-        // face biometric) in the SAME transaction as the booking, so
+        // Always a new offender — the server creates this Offender (and
+        // any face biometric) in the SAME transaction as the booking, so
         // nothing is persisted unless the booking itself succeeds.
-        data.newOffender = {
+        newOffender: {
           firstName: form.firstName,
           lastName: form.lastName,
           alias: form.alias,
@@ -125,8 +81,12 @@ export default function BookingModal({ onClose, onBooked }) {
           ethnicity: form.ethnicity,
           descriptor: newOffenderBiometric?.descriptor,
           photoBuffer: newOffenderBiometric?.photoBuffer,
-        };
-      }
+        },
+      };
+      if (!data.cellId) delete data.cellId;
+      if (!data.courtDate) delete data.courtDate;
+      if (!data.bailAmount) delete data.bailAmount;
+      if (!data.propertyList) delete data.propertyList;
 
       if (navigator.onLine) {
         const res = await api.post('/detainees', data);
@@ -134,10 +94,10 @@ export default function BookingModal({ onClose, onBooked }) {
       } else {
         // Offline: offender/biometric creation requires a server
         // round-trip, so offline-created bookings always fall back to
-        // manual entry — they sync as MANUAL once back online, and the
-        // sync route creates the offender then too, same transactional
+        // manual entry — they sync once back online, and the sync
+        // route creates the offender then too, same transactional
         // guarantee applies server-side.
-        const offline = { ...data, id: uuidv4(), custodyNumber: '(pending)', matchMethod: 'MANUAL', offenderId: null, _syncStatus: 'pending' };
+        const offline = { ...data, id: uuidv4(), custodyNumber: '(pending)', offenderId: null, _syncStatus: 'pending' };
         await saveDetaineeOffline(offline);
         onBooked(offline);
       }
@@ -156,7 +116,7 @@ export default function BookingModal({ onClose, onBooked }) {
             <i className="ti ti-lock" style={{ color: 'var(--gold)' }} /> New Custody Booking
           </h2>
           <div className="step-dots">
-            {[0, 1, 2, 3, 4].map(i => (
+            {[1, 2, 3, 4].map(i => (
               <span key={i} className={`step-dot ${step === i ? 'active' : step > i ? 'done' : ''}`} />
             ))}
           </div>
@@ -164,66 +124,30 @@ export default function BookingModal({ onClose, onBooked }) {
         </div>
 
         <div className="tabs" style={{ padding: '0 1.5rem', marginBottom: 0, borderBottom: '1px solid var(--border)' }}>
-          {['Identify Offender', 'Personal Details', 'Arrest & Charges', 'Cell & Health', 'Legal'].map((t, i) => (
+          {['Personal Details', 'Arrest & Charges', 'Cell & Health', 'Legal'].map((t, i) => (
             <button
               key={i}
-              className={`tab ${step === i ? 'active' : ''}`}
-              disabled={i > 0 && !biometricStepDone}
-              onClick={() => setStep(i)}
-            >{i === 0 ? '' : `${i}. `}{t}</button>
+              className={`tab ${step === i + 1 ? 'active' : ''}`}
+              onClick={() => setStep(i + 1)}
+            >{i + 1}. {t}</button>
           ))}
         </div>
 
         <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>⚠️ {error}</div>}
 
-          {step === 0 && !showCheckFlow && (
-            <div className="fade-in">
-              <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
-                <i className="ti ti-info-circle" />
-                Optionally check if this person is already in the system before starting a new booking.
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <button className="btn btn-primary" onClick={() => setShowCheckFlow(true)}>
-                  <i className="ti ti-scan" /> Check if known
-                </button>
-                <button className="btn btn-ghost" onClick={handleSkipBiometric}>
-                  <i className="ti ti-arrow-right" /> Skip — start new booking
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: step === 0 && showCheckFlow ? 'block' : 'none' }}>
-            <BiometricCapture
-              ref={biometricRef}
-              purpose="check"
-              onMatchFound={handleMatchFound}
-              onNoMatch={handleNoMatch}
-              onSkip={handleSkipBiometric}
-            />
-          </div>
-
-          {matchedOffender && step > 0 && (
-            <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
-              Linked to existing offender <strong>{matchedOffender.offenderNumber}</strong> — adding a new offense to their record.
-            </div>
-          )}
-
           {step === 1 && (
             <div>
-              {!matchedOffender && (
-                <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                  <BiometricCapture
-                    ref={registerBiometricRef}
-                    purpose="register"
-                    onRegistered={(descriptor, photoBuffer) => {
-                      setNewOffenderBiometric({ descriptor, photoBuffer });
-                    }}
-                    onSkip={() => {}}
-                  />
-                </div>
-              )}
+              <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <BiometricCapture
+                  ref={registerBiometricRef}
+                  purpose="register"
+                  onRegistered={(descriptor, photoBuffer) => {
+                    setNewOffenderBiometric({ descriptor, photoBuffer });
+                  }}
+                  onSkip={() => {}}
+                />
+              </div>
               <div className="form-row">
                 <div className="form-group"><label>First Name *</label><input value={form.firstName} onChange={e => set('firstName', e.target.value)} required /></div>
                 <div className="form-group"><label>Last Name *</label><input value={form.lastName} onChange={e => set('lastName', e.target.value)} required /></div>
@@ -340,13 +264,11 @@ export default function BookingModal({ onClose, onBooked }) {
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           {step > 1 && <button className="btn btn-ghost" onClick={() => setStep(s => s-1)}><i className="ti ti-arrow-left" /> Back</button>}
-          {step >= 1 && step < 4
+          {step < 4
             ? <button className="btn btn-primary" onClick={() => setStep(s => s+1)}>Next <i className="ti ti-arrow-right" /></button>
-            : step === 4
-            ? <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
+            : <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
                 {loading ? <><i className="ti ti-loader-2" /> Booking…</> : <><i className="ti ti-lock" /> Confirm Booking</>}
               </button>
-            : null
           }
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import api from '../lib/api';
-import BookingModal from '../components/BookingModal';
+import DashboardBookingModal from '../components/DashboardBookingModal';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -91,7 +91,7 @@ export default function DashboardPage() {
       </div>
 
       {showBooking && (
-        <BookingModal onClose={() => setShowBooking(false)} onBooked={handleBooked} />
+        <DashboardBookingModal onClose={() => setShowBooking(false)} onBooked={handleBooked} />
       )}
 
       <div className="stat-grid">
