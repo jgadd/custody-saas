@@ -164,6 +164,13 @@ router.post('/', ...guard, async (req, res) => {
       return tx.detainee.create({
         data: {
           ...bookingFields,
+          // bookingFields arrives from the frontend with date inputs as
+          // plain strings (e.g. "2026-01-15") — Prisma's DateTime fields
+          // require a real Date object or null, and reject raw strings
+          // with a PrismaClientValidationError before ever touching the
+          // database. Convert both date fields explicitly here.
+          dateOfBirth: bookingFields.dateOfBirth ? new Date(bookingFields.dateOfBirth) : null,
+          courtDate: bookingFields.courtDate ? new Date(bookingFields.courtDate) : null,
           offenderId: resolvedOffenderId,
           matchMethod: matchMethod || 'MANUAL',
           matchConfidence: matchConfidence ?? null,
@@ -190,9 +197,15 @@ router.put('/:id', ...guard, async (req, res) => {
     where: { id: req.params.id, stationId: req.user.stationId }
   });
   if (!existing) return res.status(404).json({ error: 'Not found' });
+  const { dateOfBirth, courtDate, ...rest } = req.body;
   const detainee = await prisma.detainee.update({
     where: { id: req.params.id },
-    data: { ...req.body, syncedAt: new Date() },
+    data: {
+      ...rest,
+      ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }),
+      ...(courtDate !== undefined && { courtDate: courtDate ? new Date(courtDate) : null }),
+      syncedAt: new Date()
+    },
     include: { cell: true, createdBy: { select: { name: true, badgeNumber: true } } }
   });
   await audit(req.user.stationId, req.user.id, 'UPDATE', 'Detainee', detainee.id, req.body, req.ip);
