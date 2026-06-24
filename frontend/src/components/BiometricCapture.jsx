@@ -1,32 +1,41 @@
-import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import api from '../lib/api';
 import { supportsFingerprintCapture } from '../lib/device';
+import { detectScanner, captureFingerprint, describeQuality } from '../lib/secugen';
 
 /**
  * BiometricCapture
  *
- * First asks the officer to choose face scan or fingerprint scan, then
- * runs the chosen flow:
+ * Two purposes, controlled by the `purpose` prop:
  *
- *   - Face scan: camera or photo upload, runs real matching against
- *     every offender across all stations.
- *   - Fingerprint scan: image upload from a USB scanner's own capture
- *     software. Phase 1 only — stored as an image, no automated
- *     matching yet (needs dedicated AFIS hardware/software). Not
- *     offered on phones, since a phone's fingerprint sensor can never
- *     be read by a web app — see lib/device.js.
+ *   purpose="check" (default) — "Check if known" landing step. Face
+ *     capture runs a real search against every offender across all
+ *     stations. Fingerprint has no matching engine yet, so it's
+ *     informational only in this mode.
+ *
+ *   purpose="register" — used inside the booking form to capture a
+ *     NEW offender's face/fingerprint for the first time. No search
+ *     runs here — capturing just hands the descriptor/photo back to
+ *     the parent via onRegistered() to attach to the new offender
+ *     record on submission.
+ *
+ * Fingerprint capture works with any USB scanner exposing a standard
+ * image-capture device, or a real-time SecuGen reader via lib/secugen.js.
+ * Not offered on phones — see lib/device.js.
  *
  * Props:
- *   onMatchFound(offender, confidence)  — face match confirmed
- *   onNoMatch(descriptor, photoBase64, photoPreviewUrl) — proceed as new offender
- *   onSkip()                            — officer skips biometric capture entirely
+ *   purpose                              — 'check' | 'register'
+ *   onMatchFound(offender, confidence)   — (check) face match confirmed
+ *   onNoMatch()                          — (check) no match, proceed to registration
+ *   onSkip()                             — (check) skip the check entirely
+ *   onRegistered(descriptor, photoBase64, fingerprintFile, fingerPosition) — (register) capture complete
  *
  * Ref:
  *   getPendingFingerprint() — returns the captured fingerprint as
  *   base64 (or null), for the parent to bundle into the single
  *   transactional booking request. Nothing is uploaded from here.
  */
-const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, onNoMatch, onSkip }, ref) {
+const BiometricCapture = forwardRef(function BiometricCapture({ purpose = 'check', onMatchFound, onNoMatch, onSkip, onRegistered }, ref) {
   const [scanType, setScanType] = useState(null); // null | 'face' | 'fingerprint'
   const [mode, setMode] = useState('idle'); // idle | camera | searching | result
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -40,6 +49,43 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
   const streamRef = useRef(null);
 
   const fingerprintAvailable = supportsFingerprintCapture();
+  const [scannerStatus, setScannerStatus] = useState('checking'); // checking | found | not-found
+  const [scannerInfo, setScannerInfo] = useState(null);
+  const [scanningFingerprint, setScanningFingerprint] = useState(false);
+  const [fingerprintQuality, setFingerprintQuality] = useState(null);
+
+  useEffect(() => {
+    if (scanType !== 'fingerprint' || !fingerprintAvailable) return;
+    setScannerStatus('checking');
+    detectScanner().then(info => {
+      if (info) {
+        setScannerInfo(info);
+        setScannerStatus('found');
+      } else {
+        setScannerStatus('not-found');
+      }
+    });
+  }, [scanType, fingerprintAvailable]);
+
+  const handleLiveCapture = async () => {
+    setScanningFingerprint(true);
+    setError('');
+    try {
+      const result = await captureFingerprint();
+      setFingerprintPreview(`data:image/bmp;base64,${result.imageBase64}`);
+      // Convert the base64 BMP into a File so it flows through the same
+      // upload/submission path as a manually-selected file.
+      const byteString = atob(result.imageBase64);
+      const bytes = new Uint8Array(byteString.length);
+      for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
+      setFingerprintFile(new File([bytes], 'fingerprint.bmp', { type: 'image/bmp' }));
+      setFingerprintQuality(describeQuality(result.nfiq));
+    } catch (e) {
+      setError(e.message || 'Fingerprint capture failed. Please try again.');
+    } finally {
+      setScanningFingerprint(false);
+    }
+  };
 
   const startCamera = useCallback(async () => {
     setError('');
@@ -124,6 +170,36 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
     }
   };
 
+  /**
+   * Register mode still calls /face/search — not to check for a match
+   * (the officer already decided to register fresh, possibly after a
+   * "check if known" scan already came back with no match), but
+   * because that's the only place a real face descriptor gets
+   * extracted from the photo. Without running this, the new offender
+   * would have a photo on file but no descriptor, making them
+   * unfindable by any future "check if known" scan. Any match result
+   * is intentionally ignored here.
+   */
+  const confirmRegistration = async () => {
+    if (!photoFile) {
+      onRegistered?.(null, null);
+      return;
+    }
+    setMode('searching');
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('photo', photoFile, 'capture.jpg');
+      const res = await api.post('/biometrics/face/search', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      onRegistered?.(res.data.descriptor, res.data.photoBuffer);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not process the photo. You can retake it or continue without a face record.');
+      setMode('idle');
+    }
+  };
+
   useImperativeHandle(ref, () => ({ getPendingFingerprint }));
 
   const resetFace = () => {
@@ -160,7 +236,9 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
       <div className="fade-in">
         <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
           <i className="ti ti-info-circle" />
-          Choose how to identify this person. Scans are checked against records from every station.
+          {purpose === 'register'
+            ? "Capture this offender's face or fingerprint for their record."
+            : 'Choose how to identify this person. Scans are checked against records from every station.'}
         </div>
 
         <div className="scan-choice-grid">
@@ -185,7 +263,8 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
         </div>
 
         <button className="btn btn-ghost" style={{ marginTop: '1.25rem' }} onClick={onSkip}>
-          <i className="ti ti-pencil" /> Skip — enter details manually
+          <i className="ti ti-pencil" />
+          {purpose === 'register' ? ' Skip — no biometric record' : ' Skip — enter details manually'}
         </button>
       </div>
     );
@@ -205,11 +284,64 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
           on file for reference once the offender is identified or a new record is created.
         </div>
 
+        {!fingerprintPreview && scannerStatus === 'checking' && (
+          <div className="scan-pulse">
+            <div className="scan-pulse-ring" />
+            <div className="scan-pulse-text">Checking for a connected fingerprint scanner…</div>
+          </div>
+        )}
+
+        {!fingerprintPreview && scannerStatus === 'found' && (
+          <div className="fade-in">
+            <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
+              <i className="ti ti-circle-check" /> Scanner connected — {scannerInfo?.model || 'reader detected'}
+            </div>
+            <div className="scan-upload-zone" onClick={!scanningFingerprint ? handleLiveCapture : undefined} style={{ cursor: scanningFingerprint ? 'default' : 'pointer' }}>
+              {scanningFingerprint ? (
+                <>
+                  <div className="scan-pulse-ring" style={{ width: 40, height: 40 }} />
+                  <span className="label">Place finger on the scanner…</span>
+                </>
+              ) : (
+                <>
+                  <i className="ti ti-fingerprint" />
+                  <span className="label">Tap to scan</span>
+                  <span className="hint">Place the offender's finger on the connected reader</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!fingerprintPreview && scannerStatus === 'not-found' && (
+          <div className="fade-in">
+            <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+              <i className="ti ti-info-circle" />
+              No connected scanner detected. If one is plugged in, make sure SecuGen's WebAPI
+              service is running, then try again — or upload a scan saved from the device's own software.
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button className="btn btn-ghost" onClick={() => { setScannerStatus('checking'); detectScanner().then(info => setScannerStatus(info ? 'found' : 'not-found')); }}>
+                <i className="ti ti-refresh" /> Check again
+              </button>
+              <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+                <i className="ti ti-upload" /> Upload scan instead
+                <input type="file" accept="image/*" onChange={handleFingerprintUpload} style={{ display: 'none' }} />
+              </label>
+            </div>
+          </div>
+        )}
+
         {fingerprintPreview ? (
           <div className="fade-in">
             <div className="scan-frame" style={{ maxWidth: 220 }}>
               <img src={fingerprintPreview} alt="Fingerprint scan" />
             </div>
+            {fingerprintQuality && (
+              <div className={`alert ${fingerprintQuality.level === 'good' ? 'alert-success' : 'alert-warn'}`} style={{ marginTop: '0.75rem', maxWidth: 260 }}>
+                <i className="ti ti-gauge" /> Scan quality: {fingerprintQuality.label}
+              </div>
+            )}
             <div style={{ marginTop: '1rem', maxWidth: 260 }}>
               <label style={{ display: 'block', marginBottom: '0.4rem' }}>Finger</label>
               <select value={fingerPosition} onChange={e => setFingerPosition(e.target.value)}>
@@ -218,21 +350,14 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
               <button className="btn btn-primary" onClick={onSkip}>
-                <i className="ti ti-arrow-right" /> Continue to booking
+                <i className="ti ti-arrow-right" /> {purpose === 'register' ? 'Done' : 'Continue to booking'}
               </button>
-              <button className="btn btn-ghost" onClick={() => { setFingerprintFile(null); setFingerprintPreview(null); }}>
+              <button className="btn btn-ghost" onClick={() => { setFingerprintFile(null); setFingerprintPreview(null); setFingerprintQuality(null); }}>
                 <i className="ti ti-refresh" /> Retake
               </button>
             </div>
           </div>
-        ) : (
-          <label className="scan-upload-zone">
-            <i className="ti ti-fingerprint" />
-            <span className="label">Upload fingerprint scan</span>
-            <span className="hint">Scan with your station's device, then upload the saved image here</span>
-            <input type="file" accept="image/*" onChange={handleFingerprintUpload} style={{ display: 'none' }} />
-          </label>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -287,7 +412,11 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
             <img src={photoPreview} alt="Captured" />
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-            <button className="btn btn-primary" onClick={runSearch}><i className="ti ti-search" /> Search all stations</button>
+            {purpose === 'register' ? (
+              <button className="btn btn-primary" onClick={confirmRegistration}><i className="ti ti-check" /> Use this photo</button>
+            ) : (
+              <button className="btn btn-primary" onClick={runSearch}><i className="ti ti-search" /> Search all stations</button>
+            )}
             <button className="btn btn-ghost" onClick={resetFace}><i className="ti ti-refresh" /> Retake</button>
           </div>
         </div>
@@ -296,7 +425,7 @@ const BiometricCapture = forwardRef(function BiometricCapture({ onMatchFound, on
       {mode === 'searching' && (
         <div className="scan-pulse fade-in">
           <div className="scan-pulse-ring" />
-          <div className="scan-pulse-text">Searching biometric records across all stations…</div>
+          <div className="scan-pulse-text">{purpose === 'register' ? 'Saving face record…' : 'Searching biometric records across all stations…'}</div>
         </div>
       )}
 

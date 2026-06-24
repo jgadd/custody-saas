@@ -10,10 +10,12 @@ const CHARGES = ['Assault', 'Armed Robbery', 'Theft', 'Drug Possession', 'Drug T
 export default function BookingModal({ onClose, onBooked }) {
   const { user } = useAuthStore();
   const [cells, setCells] = useState([]);
-  const [step, setStep] = useState(0); // step 0 = biometric capture
+  const [step, setStep] = useState(0); // step 0 = check-if-known landing choice
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const biometricRef = useRef(null);
+  const biometricRef = useRef(null); // check-mode instance
+  const registerBiometricRef = useRef(null); // register-mode instance (inside step 1)
+  const [showCheckFlow, setShowCheckFlow] = useState(false); // landing choice: true = running the check, false = choice screen
 
   // Biometric linkage carried through to submission
   const [matchedOffender, setMatchedOffender] = useState(null); // existing offender, if matched
@@ -43,7 +45,7 @@ export default function BookingModal({ onClose, onBooked }) {
     set('charges', form.charges.includes(c) ? form.charges.filter(x => x !== c) : [...form.charges, c]);
   };
 
-  // Biometric step 0 handlers
+  // "Check if known" handlers
   const handleMatchFound = (offender, confidence) => {
     setMatchedOffender(offender);
     setMatchConfidenceValue(confidence);
@@ -60,17 +62,23 @@ export default function BookingModal({ onClose, onBooked }) {
       nationality: offender.nationality,
       ethnicity: offender.ethnicity || '',
     }));
-    setStep(1);
+    // Match found — biometrics already exist, skip straight past the
+    // personal-details/registration step to charges.
+    setStep(2);
   };
 
-  const handleNoMatch = (descriptor, photoBuffer) => {
-    setNewOffenderBiometric({ descriptor, photoBuffer });
+  const handleNoMatch = () => {
+    // Checked, no match — proceed to the booking form where biometrics
+    // get registered fresh as part of step 1.
     setMatchMethod('NEW_OFFENDER');
     setBiometricStepDone(true);
     setStep(1);
   };
 
   const handleSkipBiometric = () => {
+    // Skipped the check entirely — proceed straight to the booking
+    // form, where the officer can still register face/fingerprint
+    // fresh, or skip that too for a fully manual entry.
     setMatchMethod('MANUAL');
     setBiometricStepDone(true);
     setStep(1);
@@ -82,8 +90,8 @@ export default function BookingModal({ onClose, onBooked }) {
     setLoading(true); setError('');
 
     try {
-      const pendingFingerprint = biometricRef.current?.getPendingFingerprint
-        ? await biometricRef.current.getPendingFingerprint()
+      const pendingFingerprint = registerBiometricRef.current?.getPendingFingerprint
+        ? await registerBiometricRef.current.getPendingFingerprint()
         : null;
 
       const data = {
@@ -169,9 +177,27 @@ export default function BookingModal({ onClose, onBooked }) {
         <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>⚠️ {error}</div>}
 
-          <div style={{ display: step === 0 ? 'block' : 'none' }}>
+          {step === 0 && !showCheckFlow && (
+            <div className="fade-in">
+              <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
+                <i className="ti ti-info-circle" />
+                Optionally check if this person is already in the system before starting a new booking.
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" onClick={() => setShowCheckFlow(true)}>
+                  <i className="ti ti-scan" /> Check if known
+                </button>
+                <button className="btn btn-ghost" onClick={handleSkipBiometric}>
+                  <i className="ti ti-arrow-right" /> Skip — start new booking
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: step === 0 && showCheckFlow ? 'block' : 'none' }}>
             <BiometricCapture
               ref={biometricRef}
+              purpose="check"
               onMatchFound={handleMatchFound}
               onNoMatch={handleNoMatch}
               onSkip={handleSkipBiometric}
@@ -186,6 +212,18 @@ export default function BookingModal({ onClose, onBooked }) {
 
           {step === 1 && (
             <div>
+              {!matchedOffender && (
+                <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                  <BiometricCapture
+                    ref={registerBiometricRef}
+                    purpose="register"
+                    onRegistered={(descriptor, photoBuffer) => {
+                      setNewOffenderBiometric({ descriptor, photoBuffer });
+                    }}
+                    onSkip={() => {}}
+                  />
+                </div>
+              )}
               <div className="form-row">
                 <div className="form-group"><label>First Name *</label><input value={form.firstName} onChange={e => set('firstName', e.target.value)} required /></div>
                 <div className="form-group"><label>Last Name *</label><input value={form.lastName} onChange={e => set('lastName', e.target.value)} required /></div>
