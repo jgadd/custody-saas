@@ -65,7 +65,7 @@ export default function DetaineesPage() {
   return (
     <div>
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <h1>Custody Register</h1>
+        <h1>Detainee Register</h1>
         <button className="btn btn-primary" onClick={() => setShowBooking(true)}>+ New Booking</button>
       </div>
 
@@ -110,6 +110,7 @@ export default function DetaineesPage() {
               <table>
                 <thead>
                   <tr>
+                    <th></th>
                     <th>Custody #</th>
                     <th>Detainee</th>
                     <th>Status</th>
@@ -122,8 +123,19 @@ export default function DetaineesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {detainees.map(d => (
+                  {detainees.map(d => {
+                    const photoUrl = d.offender?.biometrics?.[0]?.facePhotoUrl;
+                    return (
                     <tr key={d.id}>
+                      <td>
+                        {photoUrl ? (
+                          <img src={photoUrl} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                        ) : (
+                          <div style={{ width: 36, height: 36, borderRadius: 6, background: 'var(--navy-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                            <i className="ti ti-user" />
+                          </div>
+                        )}
+                      </td>
                       <td>
                         <span className="badge badge-gold">{d.custodyNumber || '(pending sync)'}</span>
                         {d._syncStatus === 'pending' && <span className="badge badge-amber" style={{ marginLeft: '0.25rem' }}>⏳</span>}
@@ -144,7 +156,8 @@ export default function DetaineesPage() {
                         <Link to={`/detainees/${d.id}`} className="btn btn-ghost btn-sm">View</Link>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

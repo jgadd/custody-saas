@@ -41,7 +41,15 @@ router.get('/', ...guard, async (req, res) => {
   const [detainees, total] = await Promise.all([
     prisma.detainee.findMany({
       where,
-      include: { cell: true, createdBy: { select: { name: true, badgeNumber: true } } },
+      include: {
+        cell: true,
+        createdBy: { select: { name: true, badgeNumber: true } },
+        offender: {
+          include: {
+            biometrics: { where: { type: 'FACE' }, orderBy: { capturedAt: 'desc' }, take: 1 }
+          }
+        }
+      },
       orderBy: { bookingTime: 'desc' },
       skip: (page - 1) * limit,
       take: parseInt(limit)

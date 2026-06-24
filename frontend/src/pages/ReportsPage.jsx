@@ -30,7 +30,7 @@ export default function ReportsPage() {
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Custody Register Report</h3>
+        <h3 style={{ marginBottom: '1rem' }}>Detainee Register Report</h3>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label>From Date</label>
@@ -48,7 +48,7 @@ export default function ReportsPage() {
         <div id="report-content">
           <div className="card" style={{ marginBottom: '1rem', textAlign: 'center' }}>
             <h2>ROYAL PAPUA NEW GUINEA CONSTABULARY</h2>
-            <h3>{user?.station?.name} — Custody Register Report</h3>
+            <h3>{user?.station?.name} — Detainee Register Report</h3>
             <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
               Period: {new Date(from).toLocaleDateString()} — {new Date(to).toLocaleDateString()}
             </p>

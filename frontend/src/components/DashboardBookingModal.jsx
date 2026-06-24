@@ -13,7 +13,7 @@ import BiometricCapture from './BiometricCapture';
  * match is found across any station, the flow skips straight to
  * adding a new offense. If no match is found, or the check is skipped
  * entirely, it falls through to registering a fresh face/fingerprint
- * as part of the booking form, the same way the Custody Register's
+ * as part of the booking form, the same way the Detainee Register's
  * dedicated RegisterBookingModal does for its own "New Booking" entry
  * point.
  */

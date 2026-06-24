@@ -42,7 +42,7 @@ export default function AppShell() {
 
   const navItems = [
     { to: '/', icon: '📊', label: 'Dashboard', exact: true },
-    { to: '/detainees', icon: '👤', label: 'Custody Register' },
+    { to: '/detainees', icon: '👤', label: 'Detainee Register' },
     { to: '/cells', icon: '🏠', label: 'Cell Management' },
     { to: '/reports', icon: '📋', label: 'Reports' },
   ];
@@ -92,7 +92,7 @@ export default function AppShell() {
                 onClick={() => setSidebarOpen(false)}>
                 <span className="icon">{item.icon}</span>
                 {item.label}
-                {item.label === 'Custody Register' && pending > 0 && (
+                {item.label === 'Detainee Register' && pending > 0 && (
                   <span className="nav-badge">{pending}</span>
                 )}
               </NavLink>

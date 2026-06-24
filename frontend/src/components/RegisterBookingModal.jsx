@@ -8,7 +8,7 @@ import BiometricCapture from './BiometricCapture';
 /**
  * RegisterBookingModal
  *
- * The Custody Register's "New Booking" form. This always registers a
+ * The Detainee Register's "New Booking" form. This always registers a
  * brand-new offender — face and/or fingerprint capture here is
  * registration only, with no search against other stations' records.
  *
