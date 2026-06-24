@@ -217,12 +217,48 @@ export default function DetaineeDetailPage() {
             )}
           </div>
 
-          {d.offender?.biometrics?.[0]?.facePhotoUrl && (
-            <div className="detail-section">
-              <h3>Photo on file</h3>
-              <img src={d.offender.biometrics[0].facePhotoUrl} alt="Offender" style={{ width: 150, borderRadius: 8 }} />
-            </div>
-          )}
+          {(() => {
+            const facePhoto = d.offender?.biometrics?.find(b => b.type === 'FACE' && b.facePhotoUrl);
+            const fingerprints = d.offender?.biometrics?.filter(b => b.type === 'FINGERPRINT' && b.fingerprintUrl) || [];
+            if (!facePhoto && fingerprints.length === 0) return null;
+
+            const FINGER_LABELS = {
+              LEFT_THUMB: 'Left thumb', LEFT_INDEX: 'Left index', LEFT_MIDDLE: 'Left middle',
+              LEFT_RING: 'Left ring', LEFT_LITTLE: 'Left little',
+              RIGHT_THUMB: 'Right thumb', RIGHT_INDEX: 'Right index', RIGHT_MIDDLE: 'Right middle',
+              RIGHT_RING: 'Right ring', RIGHT_LITTLE: 'Right little',
+            };
+
+            return (
+              <div className="detail-section">
+                <h3>Biometrics on file</h3>
+                <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                  {facePhoto && (
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <i className="ti ti-face-id" /> Face
+                      </div>
+                      <img src={facePhoto.facePhotoUrl} alt="Offender face" style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                        {new Date(facePhoto.capturedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  )}
+                  {fingerprints.map(fp => (
+                    <div key={fp.id}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <i className="ti ti-fingerprint" /> {FINGER_LABELS[fp.fingerPosition] || 'Fingerprint'}
+                      </div>
+                      <img src={fp.fingerprintUrl} alt="Fingerprint scan" style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                        {new Date(fp.capturedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="detail-section">
             <h3>Prior bookings at other stations</h3>

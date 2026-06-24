@@ -81,7 +81,7 @@ router.get('/:id', ...guard, async (req, res) => {
       reviews: { orderBy: { reviewedAt: 'desc' } },
       offender: {
         include: {
-          biometrics: { where: { type: 'FACE' }, orderBy: { capturedAt: 'desc' }, take: 1 },
+          biometrics: { orderBy: { capturedAt: 'desc' } },
           bookings: {
             where: { id: { not: req.params.id } },
             orderBy: { bookingTime: 'desc' },
