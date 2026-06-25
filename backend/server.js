@@ -13,6 +13,7 @@ const syncRoutes = require('./routes/sync');
 const adminRoutes = require('./routes/admin');
 const planRoutes = require('./routes/plans');
 const biometricRoutes = require('./routes/biometrics');
+const geographyRoutes = require('./routes/geography');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/detainees', detaineeRoutes);
 app.use('/api/cells', cellRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/biometrics', biometricRoutes);
+app.use('/api/admin/geography', geographyRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date() }));
 

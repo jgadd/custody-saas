@@ -79,10 +79,66 @@ async function main() {
     update: {}
   });
 
+  // ── PNG Geography seed (Province > District) ──────────────────────
+  // Suburbs are NOT seeded — they're meant to be added by Super Admin
+  // via the Geography management page (Super Admin > PNG Geography)
+  // or CSV import, since suburb naming isn't standardized nationally
+  // the way provinces/districts are. Entries marked UNVERIFIED below
+  // were sourced from a single reference during development and
+  // should be checked against an official PNG government/electoral
+  // list before being treated as final.
+  const districtsByProvince = {
+    'National Capital District': ['Moresby South', 'Moresby North-East', 'Moresby North-West'],
+    'Central': ['Abau', 'Goilala', 'Kairuku-Hiri', 'Rigo'],
+    'Gulf': ['Kerema', 'Kikori'],
+    'Milne Bay': ['Alotau', "Esa'ala", 'Kiriwina-Goodenough', 'Samarai-Murua'],
+    'Oro': ['Ijivitari', 'Sohe'],
+    'Western': ['North Fly', 'Middle Fly', 'South Fly'],
+    // UNVERIFIED below this line — single-source, needs confirmation
+    'Southern Highlands': ['Ialibu-Pangia', 'Imbonggu', 'Kagua-Erave', 'Mendi-Munihu', 'Nipa-Kutubu'],
+    'Hela': ['Komo-Margarima', 'Koroba-Kopiago', 'Tari-Pori'],
+    'Western Highlands': ['Dei', 'Mul-Baiyer', 'Tambul-Nebilyer', 'Mt Hagen'],
+    'Jiwaka': ['Anglimp-South Waghi', 'Jimi', 'North Waghi'],
+    'Chimbu': ['Chuave', 'Gumine', 'Karimui-Nomane', 'Kerowagi', 'Kundiawa-Gembogl', 'Sina Sina-Yonggomugl'],
+    'Eastern Highlands': ['Daulo', 'Goroka', 'Henganofi', 'Kainantu', 'Lufa', 'Obura-Wonenara', 'Okapa', 'Unggai-Bena'],
+    'Enga': ['Kandep', 'Kompiam-Ambum', 'Lagaip-Porgera', 'Wabag', 'Wapenamanda'],
+    'Morobe': ['Bulolo', 'Finschhafen', 'Huon Gulf', 'Kabwum', 'Lae', 'Markham', 'Menyamya', 'Nawaeb', 'Tewae-Siassi'],
+    'Madang': ['Bogia', 'Madang', 'Middle Ramu', 'Rai Coast', 'Sumkar', 'Usino Bundi'],
+    'East Sepik': ['Ambunti-Dreikikir', 'Angoram', 'Maprik', 'Wewak', 'Wosera-Gawi', 'Yangoru-Saussia'],
+    'West Sepik': ['Aitape-Lumi', 'Nuku', 'Telefomin', 'Vanimo-Green River'],
+    'Manus': ['Manus'],
+    'New Ireland': ['Kavieng', 'Namatanai'],
+    'East New Britain': ['Gazelle', 'Kokopo', 'Pomio', 'Rabaul'],
+    'West New Britain': ['Kandrian-Gloucester', 'Talasea'],
+    'Bougainville': ['North Bougainville', 'Central Bougainville', 'South Bougainville'],
+  };
+
+  let geoProvincesCreated = 0, geoDistrictsCreated = 0;
+  for (const [provinceName, districts] of Object.entries(districtsByProvince)) {
+    const province = await prisma.province.upsert({
+      where: { name: provinceName },
+      create: { name: provinceName },
+      update: {},
+    });
+    for (const districtName of districts) {
+      const existing = await prisma.district.findUnique({
+        where: { provinceId_name: { provinceId: province.id, name: districtName } },
+      });
+      if (!existing) {
+        await prisma.district.create({ data: { name: districtName, provinceId: province.id } });
+        geoDistrictsCreated++;
+      }
+    }
+  }
+  const totalProvinces = await prisma.province.count();
+  if (totalProvinces > 0) geoProvincesCreated = totalProvinces;
+
   console.log('Seed complete!');
   console.log('Super Admin: superadmin@custody.gov.pg / admin123');
   console.log('Station Admin: admin@boroko.police.gov.pg / boroko123');
   console.log('Officer: officer@boroko.police.gov.pg / officer123');
+  console.log(`Geography: ${totalProvinces} provinces, ${geoDistrictsCreated} new districts seeded this run.`);
+  console.log('NOTE: 16 of 22 provinces\' district lists are UNVERIFIED (single-source) — review via Super Admin > Geography before relying on them operationally.');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

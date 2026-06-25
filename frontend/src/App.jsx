@@ -12,6 +12,7 @@ import AdminDashboard from './admin/AdminDashboard';
 import AdminStations from './admin/AdminStations';
 import AdminUsers from './admin/AdminUsers';
 import AdminPlans from './admin/AdminPlans';
+import AdminGeography from './admin/AdminGeography';
 
 function RequireAuth({ children }) {
   const user = useAuthStore(s => s.user);
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="admin/stations" element={<RequireSuperAdmin><AdminStations /></RequireSuperAdmin>} />
           <Route path="admin/users" element={<RequireSuperAdmin><AdminUsers /></RequireSuperAdmin>} />
           <Route path="admin/plans" element={<RequireSuperAdmin><AdminPlans /></RequireSuperAdmin>} />
+          <Route path="admin/geography" element={<RequireSuperAdmin><AdminGeography /></RequireSuperAdmin>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

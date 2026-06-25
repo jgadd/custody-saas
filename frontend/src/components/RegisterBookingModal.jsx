@@ -4,7 +4,6 @@ import { saveDetaineeOffline } from '../lib/db';
 import useAuthStore from '../store/authStore';
 import { v4 as uuidv4 } from 'uuid';
 import BiometricCapture from './BiometricCapture';
-import { PNG_PROVINCES } from '../lib/pngGeography';
 
 /**
  * RegisterBookingModal
@@ -24,6 +23,7 @@ const CHARGES = ['Assault', 'Armed Robbery', 'Theft', 'Drug Possession', 'Drug T
 export default function RegisterBookingModal({ onClose, onBooked }) {
   const { user } = useAuthStore();
   const [cells, setCells] = useState([]);
+  const [geography, setGeography] = useState([]); // full Province>District>Suburb tree
   const [stationSuburbs, setStationSuburbs] = useState([]);
   const [step, setStep] = useState(1); // starts at Personal Details — no check-if-known step here
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,15 @@ export default function RegisterBookingModal({ onClose, onBooked }) {
   useEffect(() => {
     if (navigator.onLine) {
       api.get('/cells').then(r => setCells(r.data)).catch(console.error);
-      api.get('/stations/me').then(r => setStationSuburbs(r.data?.suburbs || [])).catch(console.error);
+      Promise.all([api.get('/stations/me'), api.get('/admin/geography')])
+        .then(([stationRes, geoRes]) => {
+          setGeography(geoRes.data);
+          const station = stationRes.data;
+          const province = geoRes.data.find(p => p.name === station?.province);
+          const district = province?.districts.find(d => d.name === station?.district);
+          setStationSuburbs(district?.suburbs.map(s => s.name) || []);
+        })
+        .catch(console.error);
     }
   }, []);
 
@@ -184,7 +192,7 @@ export default function RegisterBookingModal({ onClose, onBooked }) {
                   <label>Province of Origin</label>
                   <select value={form.originProvince} onChange={e => set('originProvince', e.target.value)}>
                     <option value="">Select province...</option>
-                    {PNG_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    {geography.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group"><label>Village of Origin (optional)</label><input value={form.originVillage} onChange={e => set('originVillage', e.target.value)} placeholder="e.g. Hanuabada" /></div>

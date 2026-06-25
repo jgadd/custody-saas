@@ -13,27 +13,6 @@ router.get('/me', authenticate, async (req, res) => {
   res.json(station);
 });
 
-/**
- * PUT /api/stations/me/suburbs
- * Station admins manage their own suburb list — used to populate the
- * "Residential Address" dropdown on the booking form for this station.
- * Suburb naming isn't standardized nationally, so this is deliberately
- * filled in locally by staff who know the area rather than seeded
- * from a national list.
- */
-router.put('/me/suburbs', ...guard, requireRole('STATION_ADMIN', 'SUPER_ADMIN'), async (req, res) => {
-  const { suburbs } = req.body;
-  if (!Array.isArray(suburbs)) {
-    return res.status(400).json({ error: 'suburbs must be an array of strings' });
-  }
-  const cleaned = suburbs.map(s => String(s).trim()).filter(Boolean);
-  const station = await prisma.station.update({
-    where: { id: req.user.stationId },
-    data: { suburbs: cleaned }
-  });
-  res.json({ suburbs: station.suburbs });
-});
-
 router.get('/me/users', ...guard, requireRole('STATION_ADMIN', 'SUPER_ADMIN'), async (req, res) => {
   const users = await prisma.user.findMany({
     where: { stationId: req.user.stationId },

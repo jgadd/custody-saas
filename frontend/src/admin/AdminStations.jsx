@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
-import { PNG_PROVINCES, getDistrictsForProvince } from '../lib/pngGeography';
 
 export default function AdminStations() {
   const [stations, setStations] = useState([]);
@@ -15,10 +14,14 @@ export default function AdminStations() {
   const [subForm, setSubForm] = useState({ subscriptionStatus: '', planId: '', billedUntil: '' });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [geography, setGeography] = useState([]); // [{ id, name, districts: [{id, name}] }]
 
   useEffect(() => {
-    Promise.all([api.get('/admin/stations'), api.get('/plans')])
-      .then(([s, p]) => { setStations(s.data); setPlans(p.data); if (p.data[0]) setForm(f => ({...f, planId: p.data[0].id})); })
+    Promise.all([api.get('/admin/stations'), api.get('/plans'), api.get('/admin/geography')])
+      .then(([s, p, g]) => {
+        setStations(s.data); setPlans(p.data); setGeography(g.data);
+        if (p.data[0]) setForm(f => ({...f, planId: p.data[0].id}));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -44,7 +47,8 @@ export default function AdminStations() {
     s.name.toLowerCase().includes(search.toLowerCase()) || s.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  const districtOptions = getDistrictsForProvince(form.province);
+  const provinceNames = geography.map(p => p.name);
+  const districtOptions = (geography.find(p => p.name === form.province)?.districts || []).map(d => d.name);
 
   return (
     <div>
@@ -106,7 +110,7 @@ export default function AdminStations() {
                     onChange={e => setForm(f => ({...f, province: e.target.value, district: ''}))}
                   >
                     <option value="">Select province...</option>
-                    {PNG_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    {provinceNames.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div className="form-group"><label>District</label>

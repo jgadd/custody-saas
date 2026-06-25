@@ -56,6 +56,7 @@ export default function AppShell() {
     { to: '/admin/stations', icon: '🏢', label: 'Manage Stations' },
     { to: '/admin/users', icon: '👥', label: 'All Users' },
     { to: '/admin/plans', icon: '💳', label: 'Plans' },
+    { to: '/admin/geography', icon: <i className="ti ti-map-2" />, label: 'PNG Geography' },
   ];
 
   return (

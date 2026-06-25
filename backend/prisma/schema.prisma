@@ -26,12 +26,6 @@ model Station {
   province        String
   district        String?
   address         String?
-  // Suburbs within this station's coverage area, set by station/admin
-  // staff who know the area — used to populate the "Residential
-  // Address" dropdown on the booking form for this station. Not
-  // pre-populated nationally since suburb naming isn't standardized
-  // across PNG the way provinces/districts are.
-  suburbs         String[] @default([])
   phone           String?
   email           String?
   logoUrl         String?
@@ -205,10 +199,10 @@ model Detainee {
   nationality     String   @default("Papua New Guinean")
   ethnicity       String?
   address         String?
-  // Residential suburb — chosen from the booking station's own
-  // suburbs list (Station.suburbs), since suburb naming isn't
-  // standardized nationally. Free-text `address` above still exists
-  // for any additional detail (street, settlement name, etc.)
+  // Residential suburb — chosen from the national Suburb reference
+  // table (Province > District > Suburb), filtered to the booking
+  // station's own province/district. Free-text `address` above still
+  // exists for any additional detail (street, settlement name, etc.)
   residentialSuburb String?
   // Origin province/village — where the detainee is originally from,
   // distinct from where they currently reside. Province is a national
@@ -329,4 +323,43 @@ model AuditLog {
   createdAt       DateTime @default(now())
   
   @@index([stationId, createdAt])
+}
+
+// ─── PNG GEOGRAPHY REFERENCE (national, managed by Super Admin) ────
+//
+// Replaces the earlier hardcoded JS list and the station-scoped
+// suburbs field — both provinces/districts and suburbs now live here
+// as real, editable database rows, manageable from a Super Admin page
+// (with CSV bulk import) instead of requiring a code change or direct
+// database edit to add/correct an entry.
+
+model Province {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  districts   District[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model District {
+  id          String     @id @default(uuid())
+  name        String
+  provinceId  String
+  province    Province   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  suburbs     Suburb[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([provinceId, name])
+}
+
+model Suburb {
+  id          String     @id @default(uuid())
+  name        String
+  districtId  String
+  district    District   @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([districtId, name])
 }
