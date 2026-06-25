@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
+import { PNG_PROVINCES, getDistrictsForProvince } from '../lib/pngGeography';
 
 export default function AdminStations() {
   const [stations, setStations] = useState([]);
@@ -43,7 +44,7 @@ export default function AdminStations() {
     s.name.toLowerCase().includes(search.toLowerCase()) || s.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  const provinces = ['NCD', 'Central', 'Morobe', 'Eastern Highlands', 'Western Highlands', 'Southern Highlands', 'Enga', 'Chimbu', 'Gulf', 'Western', 'Milne Bay', 'Oro', 'Manus', 'New Ireland', 'East New Britain', 'West New Britain', 'Bougainville', 'East Sepik', 'West Sepik', 'Madang', 'Jiwaka', 'Hela'];
+  const districtOptions = getDistrictsForProvince(form.province);
 
   return (
     <div>
@@ -100,12 +101,24 @@ export default function AdminStations() {
               </div>
               <div className="form-row">
                 <div className="form-group"><label>Province *</label>
-                  <select value={form.province} onChange={e => setForm(f => ({...f, province: e.target.value}))}>
+                  <select
+                    value={form.province}
+                    onChange={e => setForm(f => ({...f, province: e.target.value, district: ''}))}
+                  >
                     <option value="">Select province...</option>
-                    {provinces.map(p => <option key={p} value={p}>{p}</option>)}
+                    {PNG_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
-                <div className="form-group"><label>District</label><input value={form.district} onChange={e => setForm(f => ({...f, district: e.target.value}))} /></div>
+                <div className="form-group"><label>District</label>
+                  <select
+                    value={form.district}
+                    onChange={e => setForm(f => ({...f, district: e.target.value}))}
+                    disabled={!form.province}
+                  >
+                    <option value="">{form.province ? 'Select district...' : 'Select province first'}</option>
+                    {districtOptions.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="form-row">
                 <div className="form-group"><label>Address</label><input value={form.address} onChange={e => setForm(f => ({...f, address: e.target.value}))} /></div>

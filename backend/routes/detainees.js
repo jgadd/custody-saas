@@ -130,6 +130,8 @@ router.post('/', ...guard, async (req, res) => {
             gender: newOffender.gender,
             nationality: newOffender.nationality || 'Papua New Guinean',
             ethnicity: newOffender.ethnicity || null,
+            originProvince: newOffender.originProvince || null,
+            originVillage: newOffender.originVillage || null,
           },
         });
         resolvedOffenderId = offender.id;

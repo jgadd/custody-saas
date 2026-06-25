@@ -26,6 +26,12 @@ model Station {
   province        String
   district        String?
   address         String?
+  // Suburbs within this station's coverage area, set by station/admin
+  // staff who know the area — used to populate the "Residential
+  // Address" dropdown on the booking form for this station. Not
+  // pre-populated nationally since suburb naming isn't standardized
+  // across PNG the way provinces/districts are.
+  suburbs         String[] @default([])
   phone           String?
   email           String?
   logoUrl         String?
@@ -94,6 +100,11 @@ model Offender {
   gender          Gender
   nationality     String   @default("Papua New Guinean")
   ethnicity       String?
+  // Origin province/village — mirrors Detainee's own fields, kept here
+  // too so the offender's origin is known on later bookings even if a
+  // future booking's form doesn't re-collect it.
+  originProvince  String?
+  originVillage   String?
 
   // Biometric linkage
   biometrics      Biometric[]
@@ -194,6 +205,17 @@ model Detainee {
   nationality     String   @default("Papua New Guinean")
   ethnicity       String?
   address         String?
+  // Residential suburb — chosen from the booking station's own
+  // suburbs list (Station.suburbs), since suburb naming isn't
+  // standardized nationally. Free-text `address` above still exists
+  // for any additional detail (street, settlement name, etc.)
+  residentialSuburb String?
+  // Origin province/village — where the detainee is originally from,
+  // distinct from where they currently reside. Province is a national
+  // PNG_PROVINCES dropdown; village is free text since PNG has
+  // thousands of villages with no standardized national list.
+  originProvince  String?
+  originVillage   String?
   phone           String?
   nextOfKin       String?
   nextOfKinPhone  String?

@@ -3,6 +3,7 @@ import api from '../lib/api';
 import { saveDetaineeOffline } from '../lib/db';
 import useAuthStore from '../store/authStore';
 import { v4 as uuidv4 } from 'uuid';
+import { PNG_PROVINCES } from '../lib/pngGeography';
 import BiometricCapture from './BiometricCapture';
 
 /**
@@ -23,6 +24,7 @@ const CHARGES = ['Assault', 'Armed Robbery', 'Theft', 'Drug Possession', 'Drug T
 export default function DashboardBookingModal({ onClose, onBooked }) {
   const { user } = useAuthStore();
   const [cells, setCells] = useState([]);
+  const [stationSuburbs, setStationSuburbs] = useState([]);
   const [step, setStep] = useState(0); // step 0 = check-if-known landing choice
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,7 +41,7 @@ export default function DashboardBookingModal({ onClose, onBooked }) {
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', alias: '', dateOfBirth: '', gender: 'MALE',
-    nationality: 'Papua New Guinean', address: '', phone: '', nextOfKin: '', nextOfKinPhone: '',
+    nationality: 'Papua New Guinean', address: '', residentialSuburb: '', originProvince: '', originVillage: '', phone: '', nextOfKin: '', nextOfKinPhone: '',
     arrestingOfficer: user?.name || '', arrestLocation: '', bookingTime: new Date().toISOString().slice(0,16),
     charges: [], offense: '', offenseCategory: 'OTHER',
     cellId: '', riskLevel: 'LOW', healthNotes: '', warrantNumber: '',
@@ -50,6 +52,7 @@ export default function DashboardBookingModal({ onClose, onBooked }) {
   useEffect(() => {
     if (navigator.onLine) {
       api.get('/cells').then(r => setCells(r.data)).catch(console.error);
+      api.get('/stations/me').then(r => setStationSuburbs(r.data?.suburbs || [])).catch(console.error);
     }
   }, []);
 
@@ -136,6 +139,8 @@ export default function DashboardBookingModal({ onClose, onBooked }) {
           gender: form.gender,
           nationality: form.nationality,
           ethnicity: form.ethnicity,
+          originProvince: form.originProvince,
+          originVillage: form.originVillage,
           descriptor: newOffenderBiometric?.descriptor,
           photoBuffer: newOffenderBiometric?.photoBuffer,
         };
@@ -253,7 +258,26 @@ export default function DashboardBookingModal({ onClose, onBooked }) {
                 </div>
                 <div className="form-group"><label>Nationality</label><input value={form.nationality} onChange={e => set('nationality', e.target.value)} /></div>
               </div>
-              <div className="form-group"><label>Address</label><input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Village / Settlement / Town" /></div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Residential Suburb</label>
+                  <select value={form.residentialSuburb} onChange={e => set('residentialSuburb', e.target.value)} disabled={stationSuburbs.length === 0}>
+                    <option value="">{stationSuburbs.length ? 'Select suburb...' : 'No suburbs configured for this station'}</option>
+                    {stationSuburbs.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="form-group"><label>Address Detail</label><input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Street, settlement, section/lot..." /></div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Province of Origin</label>
+                  <select value={form.originProvince} onChange={e => set('originProvince', e.target.value)}>
+                    <option value="">Select province...</option>
+                    {PNG_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div className="form-group"><label>Village of Origin (optional)</label><input value={form.originVillage} onChange={e => set('originVillage', e.target.value)} placeholder="e.g. Hanuabada" /></div>
+              </div>
               <div className="form-row">
                 <div className="form-group"><label>Phone</label><input value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
                 <div className="form-group"><label>Next of Kin</label><input value={form.nextOfKin} onChange={e => set('nextOfKin', e.target.value)} /></div>

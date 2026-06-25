@@ -11,13 +11,37 @@ export default function SettingsPage() {
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: 'OFFICER', badgeNumber: '', rank: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [suburbInput, setSuburbInput] = useState('');
+  const [suburbList, setSuburbList] = useState([]);
+  const [savingSuburbs, setSavingSuburbs] = useState(false);
 
   useEffect(() => {
-    api.get('/stations/me').then(r => setStation(r.data));
+    api.get('/stations/me').then(r => { setStation(r.data); setSuburbList(r.data.suburbs || []); });
     if (user?.role === 'STATION_ADMIN' || user?.role === 'SUPER_ADMIN') {
       api.get('/stations/me/users').then(r => setUsers(r.data));
     }
   }, [user]);
+
+  const addSuburb = () => {
+    const trimmed = suburbInput.trim();
+    if (!trimmed || suburbList.includes(trimmed)) { setSuburbInput(''); return; }
+    setSuburbList(list => [...list, trimmed]);
+    setSuburbInput('');
+  };
+
+  const removeSuburb = (s) => setSuburbList(list => list.filter(x => x !== s));
+
+  const saveSuburbs = async () => {
+    setSavingSuburbs(true);
+    try {
+      await api.put('/stations/me/suburbs', { suburbs: suburbList });
+      setMsg('Suburb list updated');
+    } catch (e) {
+      setMsg(e.response?.data?.error || 'Failed to save suburbs');
+    } finally {
+      setSavingSuburbs(false);
+    }
+  };
 
   const handleAddUser = async () => {
     setSaving(true);
@@ -58,6 +82,43 @@ export default function SettingsPage() {
               <div key={l} className="detail-item"><div className="label">{l}</div><div className="value">{v}</div></div>
             ))}
           </div>
+          {(user?.role === 'STATION_ADMIN' || user?.role === 'SUPER_ADMIN') && (
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+              <h3 style={{ marginBottom: '0.5rem' }}>Suburbs Covered</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                Used to populate the "Residential Suburb" dropdown on booking forms at this station.
+                Suburb names aren't standardized nationally, so add the ones your station's officers actually use.
+              </p>
+              {msg && <div className="alert alert-success" style={{ marginBottom: '0.75rem' }}>✓ {msg}</div>}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <input
+                  value={suburbInput}
+                  onChange={e => setSuburbInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSuburb(); } }}
+                  placeholder="e.g. Gordons, Hohola, Tokarara"
+                  style={{ maxWidth: 280 }}
+                />
+                <button className="btn btn-ghost" type="button" onClick={addSuburb}>+ Add</button>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                {suburbList.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No suburbs added yet.</span>}
+                {suburbList.map(s => (
+                  <span key={s} className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {s}
+                    <button
+                      type="button"
+                      onClick={() => removeSuburb(s)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '0.9rem', lineHeight: 1, padding: 0 }}
+                      aria-label={`Remove ${s}`}
+                    >✕</button>
+                  </span>
+                ))}
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={saveSuburbs} disabled={savingSuburbs}>
+                {savingSuburbs ? 'Saving...' : 'Save Suburb List'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
