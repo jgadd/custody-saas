@@ -8,7 +8,7 @@ export default function SettingsPage() {
   const [users, setUsers] = useState([]);
   const [tab, setTab] = useState('station');
   const [showAddUser, setShowAddUser] = useState(false);
-  const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: 'OFFICER', badgeNumber: '', rank: '' });
+  const [userForm, setUserForm] = useState({ name: '', password: '', role: 'OFFICER', badgeNumber: '', rank: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -24,6 +24,13 @@ export default function SettingsPage() {
     try {
       const res = await api.post('/stations/me/users', userForm);
       setUsers(u => [...u, res.data]);
+      const generated = res.data.generatedUsername || res.data.username;
+      const firstName = userForm.name.split(' ')[0] || 'the user';
+      window.alert('User created successfully!
+
+Username: ' + generated + '
+
+Tell ' + firstName + ' to log in with this username. They will be prompted to set their own password on first login.');
       setShowAddUser(false);
       setMsg('User added successfully');
     } catch (e) { setMsg(e.response?.data?.error || 'Failed'); }
@@ -78,7 +85,7 @@ export default function SettingsPage() {
           {msg && <div className="alert alert-success" style={{ marginBottom: '1rem' }}>✓ {msg}</div>}
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Badge</th><th>Rank</th><th>Role</th><th>Email</th><th>Last Login</th><th>Status</th></tr></thead>
+              <thead><tr><th>Name</th><th>Username</th><th>Badge</th><th>Rank</th><th>Role</th><th>Last Login</th><th>Status</th></tr></thead>
               <tbody>
                 {users.map(u => (
                   <tr key={u.id}>
@@ -86,7 +93,7 @@ export default function SettingsPage() {
                     <td>{u.badgeNumber || '—'}</td>
                     <td>{u.rank || '—'}</td>
                     <td><span className="badge badge-blue">{u.role.replace('_',' ')}</span></td>
-                    <td style={{ fontSize: '0.8rem' }}>{u.email}</td>
+                    <td style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--navy)" }}>{u.username}</td>
                     <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'Never'}</td>
                     <td><span className={`badge ${u.isActive ? 'badge-green' : 'badge-red'}`}>{u.isActive ? 'Active' : 'Inactive'}</span></td>
                   </tr>
@@ -152,8 +159,10 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
-              <div className="form-group"><label>Email *</label><input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} /></div>
-              <div className="form-group"><label>Initial Password *</label><input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} /></div>
+              
+              <div className="alert alert-info" style={{ fontSize: '0.85rem' }}>
+                <i className="ti ti-info-circle" /> A temporary password will be set automatically. The user will be prompted to choose their own password when they first log in.
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setShowAddUser(false)}>Cancel</button>

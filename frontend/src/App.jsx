@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/authStore';
 import AppShell from './components/AppShell';
 import LoginPage from './pages/LoginPage';
+import SetPasswordPage from './pages/SetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import DetaineesPage from './pages/DetaineesPage';
 import DetaineeDetailPage from './pages/DetaineeDetailPage';
@@ -16,12 +17,16 @@ import AdminGeography from './admin/AdminGeography';
 
 function RequireAuth({ children }) {
   const user = useAuthStore(s => s.user);
-  return user ? children : <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  // Intercept any protected route if user must change password first
+  if (user.mustChangePassword) return <Navigate to="/set-password" replace />;
+  return children;
 }
 
 function RequireSuperAdmin({ children }) {
   const user = useAuthStore(s => s.user);
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <Navigate to="/set-password" replace />;
   if (user.role !== 'SUPER_ADMIN') return <Navigate to="/" replace />;
   return children;
 }
@@ -31,6 +36,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/set-password" element={<SetPasswordPage />} />
         <Route path="/" element={<RequireAuth><AppShell /></RequireAuth>}>
           <Route index element={<DashboardPage />} />
           <Route path="detainees" element={<DetaineesPage />} />

@@ -7,10 +7,10 @@ const useAuthStore = create((set, get) => ({
   loading: false,
   error: null,
 
-  login: async (email, password) => {
+  login: async (username, password) => {
     set({ loading: true, error: null });
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', { username, password });
       const { token, user } = res.data;
       localStorage.setItem('custody_token', token);
       localStorage.setItem('custody_user', JSON.stringify(user));
@@ -20,6 +20,12 @@ const useAuthStore = create((set, get) => ({
       set({ error: e.response?.data?.error || 'Login failed', loading: false });
       throw e;
     }
+  },
+
+  // Used by SetPasswordPage to clear mustChangePassword locally after success
+  setUser: (user) => {
+    localStorage.setItem('custody_user', JSON.stringify(user));
+    set({ user });
   },
 
   logout: () => {

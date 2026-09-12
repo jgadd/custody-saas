@@ -50,17 +50,17 @@ async function main() {
   // Super admin
   const superHash = await bcrypt.hash('admin123', 12);
   await prisma.user.upsert({
-    where: { email: 'superadmin@custody.gov.pg' },
-    create: { email: 'superadmin@custody.gov.pg', name: 'Super Admin', passwordHash: superHash, role: 'SUPER_ADMIN' },
+    where: { username: 'superadmin' },
+    create: { username: 'superadmin', email: 'superadmin@custody.gov.pg', name: 'Super Admin', passwordHash: superHash, role: 'SUPER_ADMIN' },
     update: {}
   });
 
   // Station admin
   const adminHash = await bcrypt.hash('boroko123', 12);
   await prisma.user.upsert({
-    where: { email: 'admin@boroko.police.gov.pg' },
+    where: { username: 'pkila' },
     create: {
-      email: 'admin@boroko.police.gov.pg', name: 'Sgt. Peter Kila',
+      username: 'pkila', email: 'admin@boroko.police.gov.pg', name: 'Sgt. Peter Kila',
       badgeNumber: 'BKO-001', rank: 'Sergeant',
       passwordHash: adminHash, role: 'STATION_ADMIN', stationId: station.id
     },
@@ -70,9 +70,9 @@ async function main() {
   // Demo officer
   const offHash = await bcrypt.hash('officer123', 12);
   await prisma.user.upsert({
-    where: { email: 'officer@boroko.police.gov.pg' },
+    where: { username: 'mtua' },
     create: {
-      email: 'officer@boroko.police.gov.pg', name: 'Const. Mary Tua',
+      username: 'mtua', email: 'officer@boroko.police.gov.pg', name: 'Const. Mary Tua',
       badgeNumber: 'BKO-042', rank: 'Constable',
       passwordHash: offHash, role: 'OFFICER', stationId: station.id
     },
@@ -134,9 +134,9 @@ async function main() {
   if (totalProvinces > 0) geoProvincesCreated = totalProvinces;
 
   console.log('Seed complete!');
-  console.log('Super Admin: superadmin@custody.gov.pg / admin123');
-  console.log('Station Admin: admin@boroko.police.gov.pg / boroko123');
-  console.log('Officer: officer@boroko.police.gov.pg / officer123');
+  console.log('Super Admin: username=superadmin / admin123');
+  console.log('Station Admin: username=pkila / boroko123');
+  console.log('Officer: username=mtua / officer123');
   console.log(`Geography: ${totalProvinces} provinces, ${geoDistrictsCreated} new districts seeded this run.`);
   console.log('NOTE: 16 of 22 provinces\' district lists are UNVERIFIED (single-source) — review via Super Admin > Geography before relying on them operationally.');
 }

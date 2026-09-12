@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { login, loading, error } = useAuthStore();
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function LoginPage() {
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      await login(email, password);
+      await login(username, password);
       navigate('/');
     } catch {}
   };
@@ -34,9 +34,9 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Email Address</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="officer@station.police.gov.pg" required autoFocus />
+              <label>Username</label>
+              <input type="text" value={username} onChange={e => setUsername(e.target.value)}
+                placeholder="e.g. jgadd" required autoFocus />
             </div>
             <div className="form-group">
               <label>Password</label>
