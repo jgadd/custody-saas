@@ -26,11 +26,7 @@ export default function SettingsPage() {
       setUsers(u => [...u, res.data]);
       const generated = res.data.generatedUsername || res.data.username;
       const firstName = userForm.name.split(' ')[0] || 'the user';
-      window.alert('User created successfully!
-
-Username: ' + generated + '
-
-Tell ' + firstName + ' to log in with this username. They will be prompted to set their own password on first login.');
+      window.alert('User created successfully!\n\nUsername: ' + generated + '\n\nTell ' + firstName + ' to log in with their username. They will be prompted to set their own password on first login.');
       setShowAddUser(false);
       setMsg('User added successfully');
     } catch (e) { setMsg(e.response?.data?.error || 'Failed'); }
